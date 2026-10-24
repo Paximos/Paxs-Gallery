@@ -1,0 +1,10 @@
+---
+import Base from '../../layouts/Base.astro';
+import Sheets from '../../components/Sheets.astro';
+import { loadPhotos } from '../../lib/photos';
+
+const { mirrorless } = await loadPhotos();
+---
+<Base title="Life on Mirrorless · Pax's" description="Pax's digital photographs from a Canon EOS M50 Mark II, trip by trip, with the camera's own exposure data." current="mirrorless">
+  <Sheets collection="mirrorless" groups={mirrorless} />
+</Base>

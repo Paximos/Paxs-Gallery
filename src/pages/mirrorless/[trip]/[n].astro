@@ -1,0 +1,22 @@
+---
+// A shareable link to one digital frame: the proof sheets with the lightbox open on that frame.
+import { getImage } from 'astro:assets';
+import Base from '../../../layouts/Base.astro';
+import Sheets from '../../../components/Sheets.astro';
+import { caption, loadPhotos, type Photo } from '../../../lib/photos';
+
+export async function getStaticPaths() {
+  const { mirrorless } = await loadPhotos();
+  return mirrorless.flatMap((g) => g.photos.map((p) => ({
+    params: { trip: g.id, n: String(p.index) },
+    props: { photo: p, label: g.label },
+  })));
+}
+
+const { photo, label } = Astro.props as { photo: Photo; label: string };
+const { mirrorless } = await loadPhotos();
+const og = await getImage({ src: photo.image, width: 1200, format: 'jpg' });
+---
+<Base title={`${caption(photo)} · ${label} · Pax's`} description={photo.alt} current="mirrorless" ogImage={new URL(og.src, Astro.url).href} initial={photo.href}>
+  <Sheets collection="mirrorless" groups={mirrorless} />
+</Base>

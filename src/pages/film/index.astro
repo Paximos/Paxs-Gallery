@@ -1,0 +1,10 @@
+---
+import Base from '../../layouts/Base.astro';
+import Sheets from '../../components/Sheets.astro';
+import { loadPhotos } from '../../lib/photos';
+
+const { film } = await loadPhotos();
+---
+<Base title="Life on Film · Pax's" description="Pax's 35mm film photographs, roll by roll, laid out as contact sheets." current="film">
+  <Sheets collection="film" groups={film} />
+</Base>

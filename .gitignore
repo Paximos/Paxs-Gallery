@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+# Netlify CLI's local link to the site
+.netlify/
+# taste-skill working files: keep only the direction (its allowances drive the inspector) and the sheet
+.taste-skill/*
+!.taste-skill/direction.json
+!.taste-skill/sheet.md

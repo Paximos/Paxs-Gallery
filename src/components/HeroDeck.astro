@@ -1,0 +1,309 @@
+---
+// The home page hero: three prints in a 3D stack (DESIGN.md, The idea and Motion).
+// Click, tap or Enter a side card to bring it to the centre; click the centred card to open it.
+// Without JavaScript every card is a plain link and the deck is a still composition.
+import { getImage } from 'astro:assets';
+import type { Photo } from '../lib/photos';
+
+interface Card {
+  id: 'pax' | 'film' | 'mirrorless';
+  href: string;
+  photo?: Photo;
+  title: string;
+  meta: string;
+  position?: string; // object-position for the portrait crop
+}
+
+interface Props {
+  cards: Card[];
+  stamp: string;
+  line: string;
+}
+
+const { cards, stamp, line } = Astro.props;
+const images = await Promise.all(
+  cards.map((c) => (c.photo ? getImage({ src: c.photo.image, width: 900, widths: [600, 900, 1400], format: 'avif', quality: c.photo.collection === 'film' ? 62 : 52 }) : undefined)),
+);
+// The cards come in visual order (left, centre, right) and the deck opens centred on Pax's.
+// A card's place: 0 centre, -1 left, 1 right; the script uses the same formula, so nothing jumps.
+const first = Math.max(0, cards.findIndex((c) => c.id === 'pax'));
+const start = (i: number) => ((i - first + 4) % 3) - 1;
+---
+<script is:inline>
+  // First visit this session, motion allowed, WebGL present: the prints start as blank paper (tray.ts).
+  // Set before the deck is parsed so a photo never flashes first; a 4s safety net shows them regardless.
+  try {
+    if (!sessionStorage.getItem('pax-tray') && !matchMedia('(prefers-reduced-motion: reduce)').matches && 'WebGLRenderingContext' in window) {
+      document.documentElement.classList.add('tray');
+      setTimeout(function () { document.documentElement.classList.remove('tray'); }, 4000);
+    }
+  } catch (e) {}
+</script>
+<section class="deck-hero" aria-labelledby="deck-title">
+  <div class="deck-grain" aria-hidden="true"></div>
+  <ul class="deck" data-deck data-active={first}>
+    {cards.map((c, i) => (
+      <li class={`deck-card deck-${c.id}`} data-pos={start(i)} data-i={i}>
+        <a
+          class="deck-link"
+          href={c.href}
+          data-kind={c.id}
+          aria-current={start(i) === 0 ? 'true' : undefined}
+          aria-describedby="deck-hint"
+        >
+          {c.photo && images[i] && (
+            <img
+              class="deck-photo"
+              src={images[i]!.src}
+              srcset={images[i]!.srcSet.attribute}
+              sizes="(min-width: 64em) 26rem, 70vw"
+              width={c.photo.image.width}
+              height={c.photo.image.height}
+              alt={c.photo.alt}
+              style={c.position ? `object-position:${c.position}` : undefined}
+              fetchpriority={i === 0 ? 'high' : undefined}
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          )}
+          <span class="deck-sheen" aria-hidden="true"></span>
+          <span class="deck-shade" aria-hidden="true"></span>
+          <span class="deck-text">
+            {c.id === 'pax' ? (
+              <>
+                <h1 id="deck-title" class="date-stamp" aria-label="Pax's: photographs on film and mirrorless">
+                  <span class="date-stamp-glow" aria-hidden="true">{stamp}</span>
+                  <span class="date-stamp-text" aria-hidden="true">{stamp}</span>
+                </h1>
+                <span class="deck-line">{line}</span>
+              </>
+            ) : (
+              <>
+                <span class="deck-title" style={`view-transition-name: title-${c.id}`}>{c.title}</span>
+                <span class="deck-meta nums">{c.meta}</span>
+              </>
+            )}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ul>
+  <p id="deck-hint" class="deck-hint small">Bring a print to the front, then open it. <span class="hint-keys">Arrow keys turn the deck.</span><span class="hint-touch">Swipe to turn the deck.</span></p>
+</section>
+
+<script>
+  import { EASE, getLenis, reduced } from '../scripts/motion';
+  import { runTray } from '../scripts/tray';
+
+  const deck = document.querySelector<HTMLElement>('[data-deck]');
+  if (deck) {
+    const cards = [...deck.querySelectorAll<HTMLElement>('.deck-card')];
+    const links = cards.map((c) => c.querySelector<HTMLAnchorElement>('.deck-link')!);
+    let active = Number(deck.dataset.active ?? 0);
+
+    // Each card's place relative to the centred one: 0 centre, -1 left, 1 right (three cards wrap around).
+    const place = (i: number) => ((i - active + 4) % 3) - 1;
+
+    function focusCard(i: number, moveFocus = false) {
+      active = (i + 3) % 3;
+      cards.forEach((c, k) => {
+        const pos = place(k);
+        c.dataset.pos = String(pos);
+        if (pos === 0) links[k].setAttribute('aria-current', 'true');
+        else links[k].removeAttribute('aria-current');
+      });
+      if (moveFocus) links[active].focus({ preventScroll: true });
+      // the print just brought forward catches a fixer sheen as it settles
+      if (!reduced()) links[active].querySelector('.deck-sheen')?.animate(
+        [{ transform: 'translateX(-70%)', opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: 'translateX(70%)', opacity: 0 }],
+        { duration: 800, delay: 180, easing: EASE.inOut },
+      );
+    }
+
+    function open(i: number) {
+      const kind = links[i].dataset.kind;
+      if (kind === 'pax') {
+        // Pax's opens onto the letter and 'Say hello' further down this page.
+        const target = document.querySelector<HTMLElement>('#letter');
+        if (!target) return;
+        const lenis = getLenis();
+        if (lenis) lenis.scrollTo(target, { offset: -24 });
+        else target.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+        target.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+        return;
+      }
+      window.location.href = links[i].href; // the page transition morphs this card's title into the page
+    }
+
+    links.forEach((a, i) => {
+      a.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        // First click centres a side card; a click on the centred card opens it.
+        if (place(i) !== 0) focusCard(i, e.detail === 0);
+        else open(i);
+      });
+      // Space activates like Enter (links only answer Enter natively).
+      a.addEventListener('keydown', (e) => {
+        if (e.key === ' ') { e.preventDefault(); a.click(); }
+      });
+    });
+
+    deck.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); focusCard(active - 1, true); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); focusCard(active + 1, true); }
+    });
+
+    // Swipe sideways on a phone to turn the deck.
+    let sx = 0, sy = 0, t0 = 0;
+    deck.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; t0 = performance.now(); }, { passive: true });
+    deck.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      const fast = Math.abs(dx) / Math.max(1, performance.now() - t0) > 0.11;
+      if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > 50 || fast)) focusCard(active + (dx < 0 ? 1 : -1));
+    }, { passive: true });
+
+    // The grain runs only while the hero is on screen.
+    const hero = deck.closest<HTMLElement>('.deck-hero');
+    if (hero) {
+      new IntersectionObserver(([en]) => hero.classList.toggle('is-off', !en.isIntersecting)).observe(hero);
+      runTray(deck);
+    }
+  }
+</script>
+
+<style>
+  /* the deck and its hint are one group, centred in the first screen. --avail is the height a card may
+     take, so a short or landscape screen gets a smaller print instead of one that spills off it. */
+  .deck-hero {
+    --avail: calc(100svh - var(--nav-h) - 2 * var(--margin) - 3.5rem);
+    position: relative; min-height: calc(100svh - var(--nav-h)); background: var(--bg);
+    display: grid; align-content: center; row-gap: clamp(0.75rem, 3svh, 2.5rem);
+    padding: var(--margin); overflow: hidden; isolation: isolate;
+  }
+
+  /* the stack: one 3D space, so the browser sorts the cards by depth. Nothing on .deck may set opacity,
+     filter, clip or overflow, or the space flattens and the cards paint in page order. */
+  /* the deck's own plane sits at depth 0, in front of the receding cards: let the pointer pass through it */
+  .deck {
+    --w: min(28vw, 26rem, calc(var(--avail) * 0.7));
+    position: relative; height: calc(var(--w) * 1.25 + 2rem);
+    perspective: 1600px; perspective-origin: 50% 40%; transform-style: preserve-3d; pointer-events: none;
+  }
+  .deck-card { pointer-events: auto; }
+  .deck-card {
+    /* centred by its offsets, so `translate` is free to carry depth alone */
+    position: absolute; left: calc(50% - var(--w) / 2); top: calc(50% - var(--w) * 0.625); width: var(--w); aspect-ratio: 4 / 5;
+    transform-style: preserve-3d;
+    /* depth (the z in `translate`) moves on its own, faster curve: the chosen print lifts clear of the one
+       leaving before the two swing past each other, so their planes never slice through one another */
+    --z: 0px; translate: 0 0 var(--z);
+    transition: transform var(--t-deck) var(--ease-spring), translate var(--t-open) var(--ease-out);
+  }
+  .deck-card[data-pos='0'] { --z: 0px; transform: translateX(0) rotateY(0deg); }
+  .deck-card[data-pos='-1'] { --z: -260px; transform: translateX(-64%) rotateY(34deg); }
+  .deck-card[data-pos='1'] { --z: -260px; transform: translateX(64%) rotateY(-34deg); }
+
+  .deck-link { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; isolation: isolate; container-type: inline-size; color: var(--ink); text-decoration: none; background: var(--surface); -webkit-tap-highlight-color: transparent; }
+  /* taste-skill-ignore: the layered shadow of a hovered card, which floats (DESIGN.md, House rules); faded by opacity, never by animating the shadow itself */
+  .deck-card::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--t-hover) ease;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.22), 0 6px 12px rgb(0 0 0 / 0.2), 0 18px 36px rgb(0 0 0 / 0.26), 0 40px 80px rgb(0 0 0 / 0.32); } /* taste-skill-ignore: shadow of a floating, hovered card */
+  /* the photo sits lowest in the card (the link isolates its own stack), so the text scrim lands on it */
+  .deck-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+  /* how far a card recedes: a dark wash whose opacity changes, never a filter */
+  .deck-shade { position: absolute; inset: 0; background: var(--bg); opacity: 0.42; transition: opacity var(--t-hover) ease; pointer-events: none; }
+  .deck-card[data-pos='0'] .deck-shade { opacity: 0; }
+
+  .deck-text { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 0.35rem; padding: clamp(1rem, 2vw, 1.5rem);
+    /* the text keeps to the edge of a side card that shows past the centre print; it changes sides halfway
+       through a turn (discrete transitions flip at 50%), while the card is moving fastest */
+    transition: align-items 340ms allow-discrete, text-align 340ms allow-discrete, opacity var(--t-hover) ease; }
+  .deck-text > * { transition: align-self 340ms allow-discrete; }
+  .deck-card[data-pos='-1'] .deck-text { align-items: flex-start; text-align: left; }
+  .deck-card[data-pos='1'] .deck-text { align-items: flex-end; text-align: right; }
+  .deck-card[data-pos='-1'] .deck-text > * { align-self: flex-start; }
+  .deck-card[data-pos='1'] .deck-text > * { align-self: flex-end; }
+  /* a neutral scrim under the text so it reads over any photo (the sanctioned exception) */
+  .deck-text::before { content: ''; position: absolute; inset: -60% 0 0 0; z-index: -1; background: linear-gradient(to top, rgb(16 20 19 / 0.86), rgb(16 20 19 / 0.5) 45%, transparent); } /* taste-skill-ignore: neutral scrim under text on a photo */
+  /* type on a card is capped by the card's own width, so a small print never overflows */
+  .deck-title { font-family: var(--font-display); text-transform: uppercase; letter-spacing: -0.02em; font-size: min(var(--step-head), 19cqi); line-height: 0.88; }
+  .deck-meta { font-size: var(--step-small); color: var(--ink); }
+  .deck-line { font-style: italic; font-size: var(--step-body); line-height: 1.25; }
+
+  /* the date stamp on Pax's card: amber core, red-orange halation */
+  .date-stamp { position: relative; align-self: flex-end; font-size: min(5.5rem, 21cqi); line-height: 0.82; color: var(--stamp); }
+  .date-stamp-text { position: relative; display: block; } /* solid amber letters: the burn is in the glow */
+  .date-stamp-glow { position: absolute; inset: 0; color: var(--stamp-glow); filter: blur(0.06em); mix-blend-mode: screen; }
+  .deck-pax .deck-line { align-self: flex-end; }
+  /* a print this small (a phone on its side) keeps only its title */
+  @container (max-width: 14rem) { .deck-line, .deck-meta { display: none; } }
+
+  .deck-hint { position: relative; z-index: 3; justify-self: center; color: var(--muted); text-align: center; }
+
+  /* the developing tray (tray.ts): until a print has come up, it is blank paper */
+  :global(html.tray) .deck-link { background: var(--paper); }
+  :global(html.tray) .deck-photo { opacity: 0; }
+  .deck-link :global(.deck-tray) { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; }
+  /* the stamp burns in once the print has developed */
+  :global(html.tray) .date-stamp-glow { animation-delay: 1250ms; }
+  :global(html.tray) .date-stamp-text { animation-delay: 1500ms; }
+  /* the fixer sheen: a band of reflected light that crosses a print as it comes to the front (animated from the script) */
+  .deck-sheen { position: absolute; inset: -10% -40%; z-index: -1; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+    background: linear-gradient(105deg, transparent 38%, rgb(227 226 218 / 0.22) 50%, transparent 62%); } /* taste-skill-ignore: light reflected on a wet print, hero only */
+  .hint-touch { display: none; }
+  @media (pointer: coarse) { .hint-keys { display: none; } .hint-touch { display: inline; } }
+
+  /* heavy grain over the whole deck */
+  .deck-grain { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; mix-blend-mode: overlay; opacity: 0.45; }
+  .deck-grain::before { content: ''; position: absolute; inset: -50%; background: var(--noise) repeat; background-size: 180px 180px; }
+
+  .deck-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+  /* press feedback: the print gives a little under the finger (on `scale`, apart from the arrival's transform) */
+  @media (prefers-reduced-motion: no-preference) {
+    .deck-link { transition: scale var(--t-press) var(--ease-out); }
+    .deck-link:active { scale: 0.985; }
+  }
+
+  /* hover: the card under a mouse lifts toward you and floats; the others dim. A side card turns most of
+     the way round but stays behind the centred print: it never covers it, and its new outline contains
+     the old one, so the pointer can't fall off the edge and set the hover flickering. */
+  @media (hover: hover) and (pointer: fine) {
+    .deck-card:hover { transition-duration: 520ms; }
+    .deck-card[data-pos='0']:hover { --z: 40px; transform: translateX(0) rotateY(0deg) scale(1.03); }
+    .deck-card[data-pos='-1']:hover { --z: -140px; transform: translateX(-64%) rotateY(12deg) scale(1.03); }
+    .deck-card[data-pos='1']:hover { --z: -140px; transform: translateX(64%) rotateY(-12deg) scale(1.03); }
+    .deck-card:hover::after { opacity: 1; }
+    .deck-card:hover .deck-shade { opacity: 0; }
+    .deck:has(.deck-card:hover) .deck-card:not(:hover) .deck-shade { opacity: 0.55; }
+  }
+
+  /* motion */
+  @keyframes stamp-bloom { from { opacity: 0; } }
+  @keyframes stamp-expose { from { opacity: 0; } }
+  @keyframes deck-arrive { from { opacity: 0; transform: translateY(24px); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .deck-grain::before { animation: pax-grain 417ms steps(1) infinite; }
+    .deck-hero.is-off .deck-grain::before { animation-play-state: paused; }
+    .date-stamp-glow { animation: stamp-bloom 900ms var(--ease-out) 300ms both; }
+    .date-stamp-text { animation: stamp-expose 650ms var(--ease-out) 550ms both; }
+    /* each card face arrives on its own: an opacity animation on the deck itself would flatten the 3D stack */
+    .deck-link { animation: deck-arrive var(--t-deck) var(--ease-spring) backwards; }
+    .deck-card:nth-child(2) .deck-link { animation-delay: 60ms; }
+    .deck-card:nth-child(3) .deck-link { animation-delay: 120ms; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .deck-card { transition: none; }
+  }
+
+  /* tablet and phone: narrower cards, the side prints lean out past the edges */
+  @media (max-width: 64em) {
+    .deck { --w: min(46vw, 24rem, calc(var(--avail) * 0.7)); }
+    /* side cards lean past the screen edge here, so only the centred card shows its title */
+    .deck-card:not([data-pos='0']) .deck-text { opacity: 0; }
+  }
+  @media (max-width: 40em) {
+    .deck { --w: min(72vw, calc(var(--avail) * 0.7)); }
+    .deck-card[data-pos='-1'] { --z: -220px; transform: translateX(-78%) rotateY(38deg); }
+    .deck-card[data-pos='1'] { --z: -220px; transform: translateX(78%) rotateY(-38deg); }
+  }
+</style>

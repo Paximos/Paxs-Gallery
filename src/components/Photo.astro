@@ -1,0 +1,46 @@
+---
+// One photo as a lightbox trigger. Without JavaScript it is a plain link to the full image.
+import { getImage } from 'astro:assets';
+import { caption, meta, type Group, type Photo } from '../lib/photos';
+
+interface Props {
+  photo: Photo;
+  group: Group;
+  sizes: string;
+  class?: string;
+  eager?: boolean;
+  trigger?: boolean; // false: a plain picture, not part of the lightbox sequence
+}
+
+const { photo, group, sizes, class: className = '', eager = false, trigger = true } = Astro.props;
+// AVIF throughout. Film keeps a higher quality so its grain is not smoothed away.
+const q = photo.collection === 'film' ? 62 : 52;
+const thumb = await getImage({ src: photo.image, width: 800, widths: [400, 800, 1200], format: 'avif', quality: q });
+const full = await getImage({ src: photo.image, width: 2400, widths: [1200, 1600, 2000, 2400], format: 'avif', quality: q });
+const fullSrc = full.srcSet.values.at(-1)?.url ?? full.src;
+const { width, height } = photo.image;
+const style = `background-image:url(${photo.placeholder})`;
+---
+{trigger ? (
+  <a
+    class={`ph ${className}`}
+    href={fullSrc}
+    style={style}
+    data-photo
+    data-href={photo.href}
+    data-full={full.srcSet.attribute}
+    data-src={fullSrc}
+    data-w={width}
+    data-h={height}
+    data-title={caption(photo)}
+    data-meta={meta(photo, group)}
+    data-group={group.label}
+    data-thumb={thumb.srcSet.values[0]?.url ?? thumb.src}
+  >
+    <img src={thumb.src} srcset={thumb.srcSet.attribute} sizes={sizes} width={width} height={height} alt={photo.alt} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+  </a>
+) : (
+  <span class={`ph ${className}`} style={style}>
+    <img src={thumb.src} srcset={thumb.srcSet.attribute} sizes={sizes} width={width} height={height} alt={photo.alt} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+  </span>
+)}

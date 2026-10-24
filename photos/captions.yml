@@ -1,0 +1,61 @@
+# Optional notes for the photos. Nothing here is required: a photo with no entry still shows,
+# with its frame number (film) or its date (mirrorless). Keys are the file names in photos/film
+# and photos/mirrorless. Everything below was written as a first guess from the pictures: correct it.
+
+# The frame behind the envelope on the landing page.
+hero: "r001-032 (1).jpg"
+
+# The photos on the Life on Film and Life on Mirrorless cards in the home page deck.
+filmCard: "r001-020 (1).jpg"
+mirrorlessCard: "IMG_1775 (1).jpg"
+
+# The small photo used as the stamp on the back of the envelope.
+stamp: "IMG_1252.jpg"
+
+# Files that stay off the site.
+hidden:
+  - "20260508_141255.jpg"   # phone shot (Samsung), not from the mirrorless camera
+  - "IMG_2549.jpg"          # a second crop of IMG_2549 (1).jpg
+
+# Film rolls, by roll number.
+rolls:
+  "001":
+    places: "Madrid, Paris, the sea"
+
+# Mirrorless trips, by the year and month they start. Unnamed trips show their month.
+trips:
+  "2021-09": { name: "Greece" }
+  "2025-09": { name: "Morocco" }
+  "2026-02": { name: "Paris" }
+
+photos:
+  "r001-001 (2).jpg": { title: "A slow morning", alt: "A young man reclining on a bed, phone in hand, in a sunlit room" }
+  "r001-003.jpg": { title: "Rain, under the hood", alt: "A grinning man in a rain hood holds an umbrella close to the lens on a wet street at night" }
+  "r001-005 (1).jpg": { title: "Palacio Real", place: "Madrid", alt: "Two people walk through clipped gardens toward the royal palace in Madrid under a clear sky" }
+  "r001-013 (1).jpg": { title: "Outside the Prado", place: "Madrid", alt: "A man shields his eyes on a bench among bronze statues in the sun outside the Prado" }
+  "r001-018 (1).jpg": { title: "A café table", place: "Madrid", alt: "A man in sunglasses and a white T-shirt sits at a café table on a busy Madrid square" }
+  "r001-020 (1).jpg": { title: "A bicycle against granite", alt: "A cream bicycle with a wicker basket of flowers leans against a granite wall below a barred window" }
+  "r001-022.jpg": { title: "A boulevard", place: "Paris", alt: "A man in a dark jacket stands on a Paris boulevard lined with pale stone buildings" }
+  "r001-030 (1).jpg": { title: "Four clocks, Madrid time", alt: "A man lowers red sunglasses in front of a wall of clocks for Tokyo, London, Buenos Aires and Madrid" }
+  "r001-032 (1).jpg": { title: "The sea at dusk", alt: "A man in a patterned shirt looks out at the sea at dusk beside a beach umbrella, mountains on the horizon" }
+
+  "IMG_0774.jpg": { title: "Sheep on the scree", alt: "A few sheep graze on a steep slope of dark scree" }
+  "IMG_1057.jpg": { title: "Taverna lunch", alt: "A man rests his head on his hand at a shaded taverna table" }
+  "IMG_1064.jpg": { title: "The sea, reflected", alt: "A close crop of sunglasses reflecting a beach and the sea" }
+  "IMG_1205.jpg": { title: "The painted tram", alt: "An old tram covered in graffiti stands on rails among trees" }
+  "IMG_1252.jpg": { title: "Cats of the square", alt: "Three cats walk toward the camera beside a Greek street sign" }
+  "IMG_1619 (1).jpg": { title: "Among the busts", alt: "Two friends laugh behind white marble busts in a museum hall" }
+  "IMG_1738.jpg": { title: "Rain after dark", alt: "People cross a rain-soaked street under orange lamps at night" }
+  "IMG_1775 (1).jpg": { title: "Relais de l’Hôtel de Ville", alt: "A glowing café corner at night with a cyclist passing in the rain" }
+  "IMG_1797.jpg": { title: "Lamps in the square", alt: "Lit windows and lamps around a dark square at night" }
+  "IMG_1864 (1).jpg": { title: "A walk in February", alt: "Two people walk along a wide paved path between bare trees" }
+  "IMG_1868.jpg": { title: "La Samaritaine", alt: "The ornate yellow and blue façade of La Samaritaine under a blue sky" }
+  "IMG_1870 (1).jpg": { title: "Arc de Triomphe", alt: "The Arc de Triomphe under a pale sky framed by bare branches" }
+  "IMG_1884.jpg": { title: "Yellow, after rain", alt: "Raindrops beaded on the yellow bonnet of a Ferrari beside its badge" }
+  "IMG_1998.jpg": { title: "Along the quay", alt: "A man walks past a line of parked cars beside a stone building" }
+  "IMG_2211.jpg": { title: "A Marrakech alley", alt: "A woman in patterned trousers stands in a narrow ochre alley" }
+  "IMG_2262.jpg": { title: "Lunch in the shade", alt: "Two friends eat under green leaves in a busy garden" }
+  "IMG_2306.jpg": { title: "Under the pergola", alt: "A woman with a bag walks away under a vine-covered pergola" }
+  "IMG_2339.jpg": { title: "The fountain", alt: "A white marble fountain in a tiled pool surrounded by flowers" }
+  "IMG_2549 (1).jpg": { title: "Rooftops of the ksar", alt: "Earth-red mud-brick rooftops above a sandy desert valley" }
+  "IMG_2550 (1).jpg": { title: "The green valley", alt: "A green river valley seen from earthen buildings in the desert" }

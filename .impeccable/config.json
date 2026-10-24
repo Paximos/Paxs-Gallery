@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/lighttable.html"
+        ],
+        "createdAt": "2026-10-23T11:56:26.922Z",
+        "reason": "Claude: unchosen decision sketch; its ground #e3e2da is the --paper bone token fixed in DESIGN.md, not a reflex default"
+      }
+    ]
+  }
+}

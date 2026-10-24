@@ -1,0 +1,76 @@
+---
+import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  current?: 'home' | 'film' | 'mirrorless';
+  ogImage?: string;
+  initial?: string; // deep link: the photo href the lightbox opens on load
+}
+
+const { title, description, current = 'home', ogImage, initial } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#161c1a" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+    <!-- The page-transition opt-in must be inline: declared only in the external stylesheet, Chrome reaches
+         the new page before it has applied it and drops the transition (tested: 0 of 6 vs 6 of 6). -->
+    <style is:inline>@view-transition { navigation: auto; }</style>
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      // Tag each page transition with the collection it goes into or comes out of, so CSS can give
+      // Life on Film its slow, soft pace and Life on Mirrorless its crisp one (global.css).
+      addEventListener('pagereveal', function (e) {
+        if (!e.viewTransition) return;
+        function collection(path) { return /^\/film\//.test(path) ? 'film' : /^\/mirrorless\//.test(path) ? 'mirrorless' : ''; }
+        var from = '';
+        try { from = collection(new URL(navigation.activation.from.url).pathname); } catch (err) {}
+        var type = collection(location.pathname) || from;
+        if (type) e.viewTransition.types.add(type);
+      });
+    </script>
+    <slot name="head" />
+  </head>
+  <body data-initial={initial}>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-mark" href="/">Pax's</a>
+      <div class="nav-links">
+        <a href="/film/" aria-current={current === 'film' ? 'page' : undefined}>Life on Film</a>
+        <a href="/mirrorless/" aria-current={current === 'mirrorless' ? 'page' : undefined}>Life on Mirrorless</a>
+        <a href="#hello">Say hello</a>
+      </div>
+    </nav>
+    <slot />
+    <Footer />
+    <div class="vhs" aria-hidden="true"><div class="vhs-grain"></div><div class="vhs-lines"></div><div class="vhs-roll"></div><div class="vhs-vignette"></div></div>
+    <script is:inline>
+      // Each photo fades in once it has loaded and decoded; photos already in the cache show at once.
+      // Inline so no photo can stay hidden if a bundled script fails.
+      document.querySelectorAll('.ph img').forEach(function (img) {
+        function show() { img.classList.add('is-in'); }
+        if (img.complete && img.naturalWidth) { img.classList.add('is-in', 'no-fade'); return; }
+        img.addEventListener('load', function () { (img.decode ? img.decode() : Promise.resolve()).then(show, show); }, { once: true });
+        img.addEventListener('error', show, { once: true });
+      });
+    </script>
+    <script>
+      import { getLenis } from '../scripts/motion';
+      import { glitches } from '../scripts/glitch';
+      getLenis();
+      glitches();
+    </script>
+  </body>
+</html>

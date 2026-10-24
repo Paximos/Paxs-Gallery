@@ -1,0 +1,80 @@
+{
+  "title": "Choose the gallery structure",
+  "question": "The world is set (the envelope, Bebas and Garamond, green-black and bone). This is about how each collection page is organised as rolls and trips pile up. Pick one, steer it, or re-roll.",
+  "options": [
+    {
+      "id": "folders",
+      "kind": "assigned",
+      "label": "Lab folders, one per roll",
+      "kicker": "THE ROLL",
+      "lineage": "the photo lab's tabbed sleeve folders",
+      "thesis": "Each roll, and each trip, is a tabbed folder in a stack; the newest sits open on top.",
+      "palette": ["#161c1a", "#1f2725", "#2a3431", "#e3e2da", "#9fc7b8"],
+      "materials": ["tabbed paper folders", "contact grid of frames 1 to 36"],
+      "viewport": "Collection title, then a stack of folder bands with trapezoid tabs; Roll 001 open as a bone sheet showing all 36 frame slots, nine filled.",
+      "risk": "Many folders could stack into a tall wall of tabs; needs a compact closed state once there are 20+ rolls.",
+      "raised": [
+        { "from": "challenger-sticker-album", "raise": "Absence is information: the frames Pax did not keep stay as numbered empty slots, so each roll shows its real shape." }
+      ],
+      "html": ".impeccable/mocks/decision/folders.html"
+    },
+    {
+      "id": "contact",
+      "kind": "dealt",
+      "label": "Contact sheets",
+      "lineage": "the lab's contact sheet and proof sheet",
+      "thesis": "Every roll laid out as one contact sheet; a quiet index of rolls runs down the left.",
+      "palette": ["#161c1a", "#1f2725", "#0f1312", "#e3e2da", "#9fc7b8"],
+      "materials": ["negative strips on a dark sheet", "edge-printed frame numbers"],
+      "viewport": "Left column: title, one line, the roll index with the current roll in jade; right: the sheet with strips of six frames.",
+      "risk": "Frames are small on the sheet; the lightbox carries all the size.",
+      "html": ".impeccable/mocks/decision/contact.html"
+    },
+    {
+      "id": "lighttable",
+      "kind": "dealt",
+      "label": "The light table",
+      "lineage": "a photographer's light table, prints scattered by roll",
+      "thesis": "One wide bone field you drag around; each roll and trip lies as its own loose cluster of prints.",
+      "palette": ["#e3e2da", "#cfcdc2", "#161c1a", "#9fc7b8"],
+      "materials": ["bone light-table surface", "prints at mixed sizes"],
+      "viewport": "Frames of Roll 001 clustered top-left at mixed sizes, Roll 002's place waiting on the right, the title huge at bottom-left.",
+      "risk": "Free panning is the least familiar on a phone and the hardest to make accessible; needs a plain list fallback.",
+      "html": ".impeccable/mocks/decision/lighttable.html"
+    },
+    {
+      "id": "challenger-sticker-album",
+      "kind": "challenger",
+      "catalogId": "pop-culture-shelf-sticker-album-spread",
+      "label": "Collector album",
+      "verdict": "declined",
+      "lineage": "sticker album spreads with ghosted slots",
+      "thesis": "A fixed set of numbered slots; filled ones glossy, missing ones ghosted.",
+      "palette": ["#efe9dc", "#c9c2b0", "#1d1d1b"],
+      "materials": ["matte album paper", "glossy stickers"],
+      "viewport": "A spread of numbered slots per roll.",
+      "case": "Its slot logic fits rolls exactly, but glossy stickers fight the lab world; it loses on audience identification.",
+      "risk": "Reads as a game rather than an archive.",
+      "kept": "Numbered empty slots for frames not kept, now in the folders card.",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-sticker-album-spread-hero.webp"
+    },
+    {
+      "id": "challenger-ticket-wallet",
+      "kind": "challenger",
+      "catalogId": "vernacular-ephemera-jet-age-ticket-wallet",
+      "label": "Ticket wallet",
+      "verdict": "declined",
+      "lineage": "jet-age airline ticket wallets",
+      "thesis": "Each trip as a coupon book of legs.",
+      "palette": ["#1b2a52", "#c8102e", "#ffffff"],
+      "materials": ["carbon coupons", "route arcs"],
+      "viewport": "A coupon per trip with its route.",
+      "case": "Trips map to legs, but rolls do not; it splits the two collections into different worlds.",
+      "risk": "A second artefact competing with the envelope.",
+      "kept": "One trip per sheet, in sequence, for the mirrorless page."
+    }
+  ],
+  "reroll": true,
+  "steer": true,
+  "buildPath": { "value": "code", "toggle": false }
+}

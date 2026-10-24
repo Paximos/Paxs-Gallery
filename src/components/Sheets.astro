@@ -1,0 +1,311 @@
+---
+// A collection page: a sticky index of rolls or trips on the left, one sheet per roll or trip on the right.
+// Film sheets are strips of six 3:2 frames; mirrorless sheets are proof rows of prints in their true shapes.
+import Photo from './Photo.astro';
+import Lightbox from './Lightbox.astro';
+import { exposure, formatDate, formatRange, type Group } from '../lib/photos';
+
+interface Props {
+  collection: 'film' | 'mirrorless';
+  groups: Group[];
+}
+
+const { collection, groups } = Astro.props;
+const film = collection === 'film';
+const total = groups.reduce((n, g) => n + g.photos.length, 0);
+const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
+---
+<main class="col wrap">
+  <aside class="col-side">
+    <h1 class="head" style={`view-transition-name: title-${collection}`}>{film ? 'Life on Film' : 'Life on Mirrorless'}</h1>
+    <p class="col-intro">
+      {film
+        ? `Every roll laid out as the lab's contact sheet, newest first: ${groups.length} ${groups.length === 1 ? 'roll' : 'rolls'}, ${frames(total)}. Tap a frame to lift it out.`
+        : `Every trip printed as a proof sheet, newest first: ${groups.length} ${groups.length === 1 ? 'trip' : 'trips'}, ${frames(total)}. Under each print, how the light was.`}
+    </p>
+    {groups.length > 1 && (
+    <nav class="col-index" aria-label={film ? 'Rolls' : 'Trips'}>
+      <ol>
+        {groups.map((g) => <li><a href={`#${g.id}`} data-index-link>{g.label}</a></li>)}
+      </ol>
+    </nav>
+    )}
+  </aside>
+
+  <div class="sheets">
+    {groups.map((g, gi) => (
+      <section class="sheet" id={g.id} aria-labelledby={`${g.id}-title`}>
+        <header class="sheet-head">
+          <h2 id={`${g.id}-title`} class="sheet-title">
+            {film ? [g.label, '35mm', g.places].filter(Boolean).join(' · ') : g.label}
+          </h2>
+          <p class="sheet-count nums">{film ? frames(g.photos.length) : [formatRange(g.start, g.end), frames(g.photos.length)].filter(Boolean).join(' · ')}</p>
+        </header>
+
+        {film ? (
+          <ol class="sheet-body strips" aria-label={`${g.label}, ${frames(g.photos.length)}`}>
+            {g.photos.map((p) => (
+              <li class="frame">
+                <Photo photo={p} group={g} class={p.image.height > p.image.width ? 'ph-portrait' : ''} sizes="(min-width: 64em) 15vw, (min-width: 40em) 22vw, 30vw" />
+                <span class="frame-edge nums">Frame {p.frame}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul class="sheet-body proof">
+            {g.photos.map((p, i) => (
+              <li class={`print pair-${i % 4}`} style={`--r:${(p.image.width / p.image.height).toFixed(4)}`}>
+                <div class="print-ph" style={`--fx:${p.focus.x.toFixed(3)};--fy:${p.focus.y.toFixed(3)}`}>
+                  <Photo photo={p} group={g} sizes="(min-width: 64em) 30vw, 50vw" />
+                  <span class="af" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                </div>
+                <div class="tag nums">
+                  <p class="tag-row">{exposure(p).map((v) => <span>{v}</span>)}</p>
+                  <p class="tag-row tag-when">
+                    {p.exif.date && <span>{formatDate(p.exif.date)}</span>}
+                    {p.exif.camera && <span>{p.exif.camera}</span>}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    ))}
+  </div>
+</main>
+
+<Lightbox />
+
+<script>
+  // Mark the roll or trip in view in the index.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-index-link]')];
+  const byId = new Map(links.map((a) => [a.hash.slice(1), a]));
+  const box = document.querySelector<HTMLElement>('.col-index');
+  const mark = (id: string) => {
+    links.forEach((a) => a.removeAttribute('aria-current'));
+    const a = byId.get(id);
+    if (!a || !box) return;
+    a.setAttribute('aria-current', 'true');
+    // Keep the current entry visible inside the index without moving the page.
+    const cs = getComputedStyle(box);
+    if (box.scrollWidth > box.clientWidth) box.scrollLeft = a.offsetLeft - parseFloat(cs.paddingLeft);
+    if (box.scrollHeight > box.clientHeight) box.scrollTop = a.offsetTop - parseFloat(cs.paddingTop);
+  };
+  if (links.length) {
+    mark(links[0].hash.slice(1));
+    const io = new IntersectionObserver((entries) => {
+      const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]) mark(visible[0].target.id);
+    }, { rootMargin: '-35% 0px -55% 0px' });
+    document.querySelectorAll('.sheet').forEach((s) => io.observe(s));
+  }
+</script>
+
+<script>
+  // Gallery motion (DESIGN.md, Motion): frames and prints reveal once as they scroll in, and photos
+  // lean toward a mouse pointer.
+  import { EASE, finePointer, reduced } from '../scripts/motion';
+
+  // ---------- reveal, once per item per page view ----------
+  // Only items still below the screen wait; anything visible on arrival never moves.
+  const items = [...document.querySelectorAll<HTMLElement>('.frame, .print')];
+  const waiting = items.filter((el) => el.getBoundingClientRect().top > innerHeight * 0.92);
+  waiting.forEach((el) => { el.dataset.reveal = 'wait'; });
+  const reveal = new IntersectionObserver((entries) => {
+    entries
+      .filter((e) => e.isIntersecting)
+      .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left)
+      .forEach((e, i) => {
+        const el = e.target as HTMLElement;
+        reveal.unobserve(el);
+        el.style.transitionDelay = `${Math.min(i, 5) * 40}ms`; // a short stagger within each batch
+        el.dataset.reveal = 'in';
+        el.addEventListener('transitionend', () => { el.style.transitionDelay = ''; }, { once: true });
+      });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  waiting.forEach((el) => reveal.observe(el));
+
+  // ---------- AF lock (overdrive), mirrorless only ----------
+  // As each print reaches the upper half of the screen, autofocus brackets hunt in and out over the
+  // sharpest patch of the frame (found at build time), lock in jade, and the camera data under the print
+  // is rewritten field by field, like the camera's display. Once per print per page view.
+  const prints = [...document.querySelectorAll<HTMLElement>('.print')];
+  if (prints.length && !reduced()) {
+    prints.forEach((p) => { p.dataset.af = 'wait'; });
+    let queue = 0;
+    let queueAt = 0;
+    const lock = (print: HTMLElement) => {
+      // Prints that arrive together lock one after another, the camera finding each in turn.
+      const now = performance.now();
+      queue = now - queueAt > 400 ? 0 : queue + 1;
+      queueAt = now;
+      const delay = Math.min(queue, 4) * 140;
+      const af = print.querySelector<HTMLElement>('.af');
+      if (!af) return;
+      const hunt = af.animate([
+        { opacity: 0, transform: 'scale(1.4)' },
+        { opacity: 1, transform: 'scale(0.84)', offset: 0.42 },
+        { opacity: 1, transform: 'scale(1.07)', offset: 0.7 },
+        { opacity: 1, transform: 'scale(1)' },
+      ], { duration: 460, delay, easing: EASE.inOut, fill: 'backwards' });
+      hunt.finished.then(() => {
+        print.dataset.af = 'lock';
+        // the camera writes its data: each field blinks off and back on, 50ms apart (always readable before and after)
+        print.querySelectorAll('.tag span').forEach((span, i) => span.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 70, delay: i * 50, easing: 'steps(1, end)' }));
+        af.animate([{ opacity: 1 }, { opacity: 1, offset: 0.65 }, { opacity: 0 }], { duration: 820, easing: 'ease', fill: 'forwards' });
+      }).catch(() => {});
+    };
+    const aim = new IntersectionObserver((entries) => {
+      entries
+        .filter((e) => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left)
+        .forEach((e) => { aim.unobserve(e.target); lock(e.target as HTMLElement); });
+    }, { rootMargin: '0px 0px -45% 0px' });
+    prints.forEach((p) => aim.observe(p));
+  }
+
+  // ---------- cursor-follow: the photo leans toward the pointer inside its crop ----------
+  // A spring of duration 0.5s and no bounce (stiffness 158, damping 25, mass 1), stepped per frame.
+  if (finePointer() && !reduced()) {
+    document.documentElement.classList.add('follow');
+    const K = 158, C = 25, SCALE = 1.05;
+    type State = { img: HTMLImageElement; x: number; y: number; s: number; vx: number; vy: number; vs: number; tx: number; ty: number; ts: number };
+    const live = new Map<HTMLElement, State>();
+    let last = 0;
+    let running = false;
+
+    const step = (now: number) => {
+      const dt = Math.min(0.032, (now - (last || now)) / 1000) || 1 / 60;
+      last = now;
+      live.forEach((st, el) => {
+        for (const [p, v, t] of [['x', 'vx', 'tx'], ['y', 'vy', 'ty'], ['s', 'vs', 'ts']] as const) {
+          st[v] += (K * (st[t] - st[p]) - C * st[v]) * dt;
+          st[p] += st[v] * dt;
+        }
+        const resting = st.ts === 1 && Math.abs(st.x) + Math.abs(st.y) < 0.05 && Math.abs(st.s - 1) < 0.0005 && Math.abs(st.vx) + Math.abs(st.vy) < 0.05;
+        if (resting) { st.img.style.transform = ''; st.img.style.willChange = ''; live.delete(el); return; }
+        st.img.style.transform = `translate(${st.x.toFixed(2)}px, ${st.y.toFixed(2)}px) scale(${st.s.toFixed(4)})`;
+      });
+      if (live.size) requestAnimationFrame(step);
+      else { running = false; last = 0; }
+    };
+    const kick = () => { if (!running) { running = true; requestAnimationFrame(step); } };
+
+    document.querySelectorAll<HTMLAnchorElement>('a.ph[data-photo]').forEach((a) => {
+      const img = a.querySelector('img');
+      if (!img) return;
+      const state = () => {
+        let st = live.get(a);
+        if (!st) { st = { img, x: 0, y: 0, s: 1, vx: 0, vy: 0, vs: 0, tx: 0, ty: 0, ts: 1 }; live.set(a, st); img.style.willChange = 'transform'; }
+        return st;
+      };
+      a.addEventListener('pointermove', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        const r = a.getBoundingClientRect();
+        // At most half the extra width the scale gives, less a margin, so the crop never shows an edge.
+        const slackX = ((SCALE - 1) / 2) * r.width * 0.9;
+        const slackY = ((SCALE - 1) / 2) * r.height * 0.9;
+        const st = state();
+        st.tx = ((e.clientX - r.left) / r.width - 0.5) * 2 * slackX;
+        st.ty = ((e.clientY - r.top) / r.height - 0.5) * 2 * slackY;
+        st.ts = SCALE;
+        kick();
+      });
+      a.addEventListener('pointerleave', () => {
+        const st = live.get(a);
+        if (!st) return;
+        st.tx = 0; st.ty = 0; st.ts = 1;
+        kick();
+      });
+    });
+  }
+</script>
+
+<style>
+  /* reveal once as they scroll in: film frames rise softly, mirrorless prints wipe in crisply */
+  @media (prefers-reduced-motion: no-preference) {
+    .frame { transition: opacity var(--t-reveal) ease, transform var(--t-reveal) var(--ease-out); }
+    .frame[data-reveal='wait'] { opacity: 0; transform: translateY(16px); }
+    .print { transition: clip-path var(--t-reveal-crisp) var(--ease-in-out); }
+    .print[data-reveal='wait'] { clip-path: inset(0 0 100% 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frame, .print { transition: opacity 240ms ease; }
+    .frame[data-reveal='wait'], .print[data-reveal='wait'] { opacity: 0; }
+  }
+
+  .col { display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; gap: var(--gutter) clamp(2rem, 4vw, 4rem); padding-top: clamp(1rem, 3vw, 2.5rem); }
+  .col-side { display: flex; flex-direction: column; gap: 1.5rem; }
+  .col-intro { max-width: 32ch; font-size: max(1.125rem, var(--step-body)); }
+  /* only the index stays put while the sheets scroll by */
+  .col-index { position: sticky; top: 1.5rem; max-height: calc(100svh - 3rem); overflow-y: auto; scrollbar-width: none; }
+  .col-index ol { display: flex; flex-direction: column; gap: 0.15rem; font-family: var(--font-display); font-size: var(--step-lead); line-height: 1.15; }
+  .col-index a { display: inline-block; padding-top: 0.1em; color: var(--muted); text-decoration: none; }
+  .col-index a[aria-current] { color: var(--accent); }
+  @media (hover: hover) and (pointer: fine) { .col-index a:hover { color: var(--ink); } }
+  @media (pointer: coarse) { .col-index a { padding-block: 9px; margin-block: -9px; } }
+
+  .sheets { display: flex; flex-direction: column; gap: clamp(3rem, 6vw, 5rem); min-width: 0; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .sheet-title { font-size: var(--step-lead); line-height: 1; letter-spacing: 0; }
+  .sheet-count { font-size: var(--step-small); }
+  .sheet-body { background: var(--surface); padding: clamp(0.75rem, 1.6vw, 1.5rem); }
+
+  /* film: each row of the grid is a strip of negatives on the near-black film base */
+  .strips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 0; }
+  .frame { display: flex; flex-direction: column; gap: 4px; padding: 14px 5px 8px; background: var(--strip); }
+  .frame :global(.ph) { aspect-ratio: 3 / 2; }
+  .frame :global(.ph-portrait img) { object-fit: contain; }
+  /* the frame number printed along the film base, like the lab's edge print */
+  .frame-edge { font-family: var(--font-display); font-size: var(--step-body); color: var(--paper-2); line-height: 1.1; padding-top: 0.1em; }
+
+  /* mirrorless: justified proof rows, each print at its true shape */
+  .proof { --row: clamp(9rem, 16vw, 15rem); display: flex; flex-wrap: wrap; gap: 12px; }
+  .proof::after { content: ""; flex: 999 1 0; }
+  /* a portrait print never shrinks to a sliver: it keeps at least 7.5rem and stands taller than its row */
+  .proof { align-items: flex-start; }
+  .print { flex: var(--r) 1 calc(var(--r) * var(--row)); display: flex; flex-direction: column; min-width: min(7.5rem, 100%); container-type: inline-size; }
+  .print :global(.ph) { aspect-ratio: var(--r); }
+  .tag { padding: 10px 12px; display: flex; flex-direction: column; gap: 0.15rem; font-size: var(--step-small); line-height: 1.35; }
+  .tag-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 0.75rem; }
+  /* AF brackets: four corner marks over the frame's sharpest patch, bone while hunting, jade once locked */
+  .print-ph { position: relative; }
+  .af { --s: clamp(2.25rem, 26%, 5.5rem); position: absolute; width: var(--s); aspect-ratio: 1; pointer-events: none; opacity: 0;
+    left: clamp(6px, calc(var(--fx) * 100% - var(--s) / 2), calc(100% - var(--s) - 6px));
+    top: clamp(6px, calc(var(--fy) * 100% - var(--s) / 2), calc(100% - var(--s) - 6px)); }
+  .af i { position: absolute; width: 28%; height: 28%; border: 0 solid var(--ink); }
+  .af i:nth-child(1) { top: 0; left: 0; border-width: 2px 0 0 2px; }
+  .af i:nth-child(2) { top: 0; right: 0; border-width: 2px 2px 0 0; }
+  .af i:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+  .af i:nth-child(4) { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+  .print[data-af='lock'] .af i { border-color: var(--accent); }
+
+  .pair-0 .tag { background: var(--surface-2); color: var(--ink); }
+  .pair-1 .tag { background: var(--paper); color: var(--paper-ink); }
+  .pair-2 .tag { background: var(--strip); color: var(--ink); }
+  .pair-3 .tag { background: var(--muted); color: var(--paper-ink); }
+  /* the label strip answers to its own print's width: a narrow print shows the four exposure values as a
+     2 × 2 block and leaves the date and camera to the lightbox */
+  @container (max-width: 12rem) {
+    .print .tag-row { display: grid; grid-template-columns: auto auto; justify-content: space-between; }
+    .print .tag-when { display: none; }
+  }
+
+  @media (max-width: 64em) {
+    .col { grid-template-columns: 1fr; }
+    .col-side { display: contents; }
+    .col-side > h1, .col-intro { grid-column: 1; }
+    .col-index { top: 0; z-index: 2; max-height: none; margin-inline: calc(var(--margin) * -1); padding: 0.75rem var(--margin); background: var(--bg); overflow-x: auto; overflow-y: hidden; }
+    .col-index ol { flex-direction: row; gap: 1.25rem; white-space: nowrap; }
+    .strips { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 40em) {
+    .sheet-body { padding: 0.5rem; }
+    .strips { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 0; }
+    .frame { padding: 10px 3px 6px; }
+    .proof { --row: 7.5rem; gap: 8px; }
+    .tag { padding: 8px; }
+    .tag-when { display: none; }
+  }
+</style>

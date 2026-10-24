@@ -1,0 +1,135 @@
+---
+import Base from '../layouts/Base.astro';
+import HeroDeck from '../components/HeroDeck.astro';
+import { loadPhotos } from '../lib/photos';
+
+const { film, mirrorless, hero, filmCard, mirrorlessCard } = await loadPhotos();
+const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const say = (n: number) => words[n] ?? String(n);
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+const latestRoll = film[0];
+const filmFrames = film.reduce((n, g) => n + g.photos.length, 0);
+const digitalFrames = mirrorless.reduce((n, g) => n + g.photos.length, 0);
+const camera = mirrorless.flatMap((g) => g.photos).find((p) => p.exif.camera)?.exif.camera ?? 'Mirrorless';
+const years = mirrorless.flatMap((g) => [g.start, g.end]).filter(Boolean).map((d) => d!.getUTCFullYear());
+const firstYear = Math.min(...years);
+const lastYear = Math.max(...years);
+const span = lastYear - firstYear;
+
+// The title is the date stamp a film camera burns into the corner of a print.
+const stamp = `PAX'S '${String(lastYear).slice(2)}`;
+// In visual order, left to right; the deck opens centred on Pax's.
+const cards = [
+  { id: 'film' as const, href: '/film/', photo: filmCard, title: 'Life on Film', meta: [latestRoll.label, count(filmFrames, 'frame', 'frames')].join(' · ') },
+  { id: 'pax' as const, href: '#letter', photo: hero, title: "Pax's", meta: '', position: '62% 45%' },
+  { id: 'mirrorless' as const, href: '/mirrorless/', photo: mirrorlessCard, title: 'Life on Mirrorless', meta: [count(mirrorless.length, 'trip', 'trips'), count(digitalFrames, 'frame', 'frames')].join(' · ') },
+];
+const named = mirrorless.map((g) => g.places).filter(Boolean) as string[];
+const unnamed = mirrorless.length - named.length;
+const tripPlaces = named.length ? named.join(', ') + (unnamed ? ` and ${say(unnamed)} more` : '') : 'trips by month';
+---
+<Base title="Pax's: Life on Film & Life on Mirrorless" description={`Photographs by Pax: ${count(film.length, 'roll', 'rolls')} of 35mm film and ${say(span)} years on a ${camera}.`}>
+  <HeroDeck cards={cards} stamp={stamp} line="Two cameras. One life." />
+
+  <main>
+    <section class="intro wrap" aria-labelledby="intro-title">
+      <div class="intro-top">
+        <h2 id="intro-title" class="head" data-reveal="1">A work in progress…</h2>
+      </div>
+      <dl class="facts">
+        <div data-reveal="3"><dt class="fact nums">{count(filmFrames, 'frame', 'frames')}</dt><dd>on film, from {count(film.length, 'roll', 'rolls')}</dd></div>
+        <div data-reveal="3"><dt class="fact nums">{count(digitalFrames, 'frame', 'frames')}</dt><dd>from the {camera}</dd></div>
+        <div data-reveal="3"><dt class="fact nums">{firstYear}–{String(lastYear).slice(2)}</dt><dd>{say(span)} years of trips</dd></div>
+        <div data-reveal="3"><dt class="fact nums">{count(mirrorless.length, 'trip', 'trips')}</dt><dd>{tripPlaces}</dd></div>
+      </dl>
+    </section>
+
+    <section class="letter-wrap" id="letter" aria-labelledby="letter-title">
+      <article class="letter">
+        <h2 id="letter-title" class="letter-title" data-reveal="1" tabindex="-1">Dear whoever opens this</h2>
+        <div class="letter-body" data-reveal="2">
+          <p>Thanks for opening the envelope.</p>
+          <p>I'm Pax. I carry two cameras: a film camera for the moments I'm willing to wait for, and a {camera} for everything that won't wait.</p>
+        </div>
+        <p class="letter-sign" data-reveal="3">Pax</p>
+        <p class="small letter-role" data-reveal="3">Photographs, {firstYear}–{lastYear}</p>
+      </article>
+    </section>
+  </main>
+</Base>
+
+<script>
+  // Landing-page motion (DESIGN.md, Motion): the once-per-visit section entrances.
+  // The hero deck is its own component (HeroDeck.astro).
+  // GSAP is fetched and set up only once the page has loaded and the main thread is idle, so parsing it
+  // never competes with the deck's arrival.
+  import { easeOut, getLenis, reduced } from '../scripts/motion';
+
+  async function init() {
+    const [{ gsap }, { ScrollTrigger }] = await Promise.all([import('gsap'), import('gsap/ScrollTrigger')]);
+    gsap.registerPlugin(ScrollTrigger);
+    getLenis()?.on('scroll', ScrollTrigger.update);
+
+    // Headings, then text, then pictures, once each section is 15% into view.
+    document.querySelectorAll<HTMLElement>('main > section').forEach((section) => {
+      const items = [...section.querySelectorAll<HTMLElement>('[data-reveal]')]
+        .sort((a, b) => Number(a.dataset.reveal) - Number(b.dataset.reveal));
+      // A section the visitor can already see stays as it is rather than blinking out to animate in.
+      if (!items.length || section.getBoundingClientRect().top < innerHeight * 0.85) return;
+      gsap.set(items, { opacity: 0, y: 16 });
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top 85%',
+        once: true,
+        onEnter: () => gsap.to(items, { opacity: 1, y: 0, duration: 0.6, ease: easeOut, stagger: 0.06, clearProps: 'transform' }),
+      });
+    });
+  }
+
+  // While the hero prints are developing (html.tray), parsing GSAP would land in the middle of the develop:
+  // wait for it to finish first.
+  const afterTray = (go: () => void) => {
+    const root = document.documentElement;
+    if (!root.classList.contains('tray')) return go();
+    const mo = new MutationObserver(() => { if (!root.classList.contains('tray')) { mo.disconnect(); go(); } });
+    mo.observe(root, { attributes: true, attributeFilter: ['class'] });
+  };
+
+  if (!reduced()) {
+    const whenIdle = () => afterTray(() => ('requestIdleCallback' in window ? requestIdleCallback(() => init(), { timeout: 1200 }) : setTimeout(init, 300)));
+    if (document.readyState === 'complete') whenIdle();
+    else addEventListener('load', whenIdle, { once: true });
+  }
+</script>
+
+<style>
+  .intro { padding-block: var(--section) calc(var(--section) * 0.5); }
+  .intro-top { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: end; }
+  .intro-top h2 { grid-column: 1 / 8; }
+  .facts { margin-top: clamp(4rem, 8vw, 7.5rem); display: flex; justify-content: space-between; gap: 2rem; }
+  .fact { font-family: var(--font-display); font-size: var(--step-head); line-height: 0.9; letter-spacing: -0.01em; }
+  .facts dd { margin-top: 0.6rem; max-width: 20ch; }
+
+  /* the letter */
+  .letter-wrap { padding: calc(var(--section) * 0.5) var(--margin) 0; display: flex; justify-content: center; }
+  .letter { position: relative; width: min(100%, 40rem); padding: 3.75rem; background: var(--paper); color: var(--paper-ink); }
+  .letter::after { content: ""; position: absolute; left: 0; right: 0; bottom: -12px; height: 12px; background: var(--scallop-down) repeat-x; background-size: 24px 12px; }
+  .letter-title { font-size: var(--step-head); margin-bottom: 2rem; }
+  .letter-body p { line-height: 1.55; }
+  .letter-body p + p { margin-top: 1em; }
+  .letter-sign { margin-top: 2rem; font-style: italic; font-size: var(--step-lead); line-height: 1.1; }
+  .letter-role { color: var(--paper-muted); }
+
+  @media (max-width: 64em) {
+    .intro-top h2 { grid-column: 1 / 13; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem 2rem; }
+  }
+  @media (max-width: 40em) {
+    .facts { gap: 2rem 1rem; }
+    .letter { padding: 2.5rem 1.5rem; }
+  }
+
+  /* motion (DESIGN.md, Motion): the hero deck animates itself (HeroDeck.astro); the sections below
+     enter once from the script above */
+</style>

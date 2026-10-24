@@ -1,0 +1,110 @@
+﻿[
+    {
+        "id":  "film-01",
+        "source":  "r001-001 (2).jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-02",
+        "source":  "r001-003.jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-03",
+        "source":  "r001-005 (1).jpg",
+        "w":  2898,
+        "h":  1931,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-04",
+        "source":  "r001-013 (1).jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-05",
+        "source":  "r001-018 (1).jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-06",
+        "source":  "r001-020 (1).jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-07",
+        "source":  "r001-022.jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-08",
+        "source":  "r001-030 (1).jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    },
+    {
+        "id":  "film-09",
+        "source":  "r001-032 (1).jpg",
+        "w":  3072,
+        "h":  2048,
+        "camera":  "",
+        "f":  null,
+        "shutter":  null,
+        "iso":  null,
+        "focal":  null,
+        "date":  ""
+    }
+]

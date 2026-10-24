@@ -1,0 +1,28 @@
+---
+import { getImage } from 'astro:assets';
+import { loadPhotos } from '../lib/photos';
+import { site } from '../lib/site';
+
+const { stamp } = await loadPhotos();
+const stampImg = stamp ? await getImage({ src: stamp.image, width: 200, format: 'webp' }) : undefined;
+---
+<footer class="back" id="hello">
+  <div class="back-card">
+    <div class="back-left">
+      <h2 class="back-title">Say hello</h2>
+      <p>Everything here was shot by Pax, on 35mm film and a Canon EOS M50 Mark II. New rolls go in this envelope as they come back from the lab. If a frame reminds you of somewhere, write and say so.</p>
+    </div>
+    <div class="back-right">
+      {stampImg && stamp && (
+        <span class="stamp"><img src={stampImg.src} width="200" height={Math.round((200 * stamp.image.height) / stamp.image.width)} alt="" loading="lazy" /></span>
+      )}
+      <ul class="back-links">
+        <li><a class="link" href={`mailto:${site.email}`}>{site.email}</a></li>
+        {site.instagram && <li><a class="link" href={site.instagram}>Instagram</a></li>}
+        <li><a class="link" href="/film/">Life on Film</a></li>
+        <li><a class="link" href="/mirrorless/">Life on Mirrorless</a></li>
+      </ul>
+    </div>
+    <p class="imprint small">© {new Date().getFullYear()} Pax. All photographs by Pax.</p>
+  </div>
+</footer>
