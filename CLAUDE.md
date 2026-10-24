@@ -39,7 +39,7 @@ covered-title findings are expected.
 ## Motion
 
 Everything that moves is specified in the Motion section of DESIGN.md (what animates, what doesn't, curves,
-durations, reduced-motion fallbacks). Code: `src/scripts/motion.ts` (curves, reduced-motion flag, Lenis),
-the landing script in `src/pages/index.astro` (ScrollTrigger), `src/components/Lightbox.astro` (open, close as a shared-element transition on the Web Animations API, with `src/scripts/develop.ts` for the darkroom develop and sensor readout,
+durations, reduced-motion fallbacks). Code: `src/scripts/motion.ts` (curves, reduced-motion flag, Lenis), `tray.ts` (the hero develop), `channel.ts` (the hero cards' channel flips), `glitch.ts` (tap and ambient glitches),
+the landing script in `src/pages/index.astro` (the section entrances: IntersectionObserver + CSS), `src/components/Lightbox.astro` (open, close as a shared-element transition on the Web Animations API, with `src/scripts/develop.ts` for the darkroom develop and sensor readout,
 swipes, zoom), the motion block at the end of `global.css` (presses, hovers, image fades, view transitions).
 Test motion in a visible browser or headless Chrome; a hidden browser pane runs no animation frames.

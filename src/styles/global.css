@@ -16,10 +16,10 @@
   --paper-muted: #4a504c;
   --accent: #9fc7b8;
   --accent-ink: #161c1a;
-  --stamp: #ffa15a;       /* amber date stamp: the hero title only (its hot core) */
-  --stamp-glow: #ff4410;  /* its red-orange halation */
+  --neon: rgb(227 226 218 / 0.9);  /* the hero cards' VHS frame: a bone tube of light */
 
   --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+  --font-poster: "Inter Tight", "Helvetica Neue", Arial, sans-serif; /* the hero name only, subset to its glyphs */
   --font-text: "EB Garamond", Garamond, Georgia, serif;
 
   --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
@@ -71,7 +71,6 @@ a { color: inherit; }
 ::selection { background: var(--accent); color: var(--accent-ink); }
 html { color-scheme: dark; caret-color: var(--accent); scrollbar-color: var(--surface-2) var(--bg); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---------- type ---------- */
 h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: -0.02em; line-height: 0.88; text-wrap: balance; }
@@ -84,7 +83,6 @@ p { text-wrap: pretty; }
 
 /* ---------- controls ---------- */
 .button { display: inline-flex; align-items: center; justify-content: center; min-height: 3rem; padding: 0.12em 1.5rem 0; background: var(--accent); color: var(--accent-ink); border-radius: var(--radius); font-family: var(--font-display); font-size: var(--step-lead); line-height: 1; text-decoration: none; white-space: nowrap; }
-.link-plain { text-decoration: underline; text-underline-offset: 0.18em; text-decoration-thickness: 0.07em; }
 .link { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 0.2em; text-decoration-thickness: 0.07em; }
 @media (hover: hover) and (pointer: fine) { .link:hover { text-decoration-color: currentColor; } }
 
@@ -207,31 +205,20 @@ p { text-wrap: pretty; }
 /* page to page: the door's heading becomes the page's title */
 /* the opt-in, @view-transition { navigation: auto }, is inline in Base.astro's <head> */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 200ms; animation-timing-function: ease; }
-::view-transition-group(title-film), ::view-transition-group(title-mirrorless) { animation-duration: var(--t-open); animation-timing-function: var(--ease-in-out); }
+/* Both titles fly at one pace, slow and even, whatever the page does around them */
+::view-transition-group(title-film), ::view-transition-group(title-mirrorless) { animation-duration: var(--t-film); animation-timing-function: var(--ease-in-out); }
 ::view-transition-old(title-film), ::view-transition-new(title-film),
-::view-transition-old(title-mirrorless), ::view-transition-new(title-mirrorless) { animation-duration: var(--t-open); animation-timing-function: var(--ease-in-out); }
+::view-transition-old(title-mirrorless), ::view-transition-new(title-mirrorless) { animation-duration: var(--t-film); animation-timing-function: var(--ease-in-out); }
 
 /* Each collection keeps its own pace (the navigation is typed in Base.astro's pagereveal script).
    Film: slow and soft, the new page settles in through a long crossfade. */
 @media (prefers-reduced-motion: no-preference) {
   html:active-view-transition-type(film)::view-transition-old(root) { animation-duration: var(--t-film); animation-timing-function: ease; }
   html:active-view-transition-type(film)::view-transition-new(root) { animation: var(--t-film) ease both pax-fade-in, var(--t-film) var(--ease-out) both pax-settle; }
-  html:active-view-transition-type(film)::view-transition-group(title-film),
-  html:active-view-transition-type(film)::view-transition-group(title-mirrorless),
-  html:active-view-transition-type(film)::view-transition-old(title-film),
-  html:active-view-transition-type(film)::view-transition-new(title-film),
-  html:active-view-transition-type(film)::view-transition-old(title-mirrorless),
-  html:active-view-transition-type(film)::view-transition-new(title-mirrorless) { animation-duration: var(--t-film); }
 
   /* Mirrorless: crisp and quick, the new page wipes down over the old like a shutter, no fade. */
   html:active-view-transition-type(mirrorless)::view-transition-old(root) { animation: none; }
   html:active-view-transition-type(mirrorless)::view-transition-new(root) { animation: var(--t-shutter) var(--ease-in-out) both pax-shutter; mix-blend-mode: normal; }
-  html:active-view-transition-type(mirrorless)::view-transition-group(title-film),
-  html:active-view-transition-type(mirrorless)::view-transition-group(title-mirrorless),
-  html:active-view-transition-type(mirrorless)::view-transition-old(title-film),
-  html:active-view-transition-type(mirrorless)::view-transition-new(title-film),
-  html:active-view-transition-type(mirrorless)::view-transition-old(title-mirrorless),
-  html:active-view-transition-type(mirrorless)::view-transition-new(title-mirrorless) { animation-duration: var(--t-shutter); animation-timing-function: var(--ease-out); }
 }
 @keyframes pax-fade-in { from { opacity: 0; } }
 @keyframes pax-settle { from { transform: scale(1.015); } }

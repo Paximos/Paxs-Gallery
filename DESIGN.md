@@ -10,15 +10,17 @@ Direction: **The page is the object** (taste-skill, seed 1795742774; full sheet 
 > On this page, **Pax's photo-lab envelope** (roll 001, frames 1–32, collected with the digital prints)
 > becomes **the object the whole site is built as**.
 
-- **The hero is a deck of three prints** in a 3D stack: **Pax's** (the sunset frame with the amber date stamp
-  PAX'S '26 burned in), **Life on Film** and **Life on Mirrorless**. The focused card faces you; the other two
+- **The hero is a deck of three prints** in a 3D stack: **Pax's** (the sunset frame set as a poster: the
+  name huge and heavy, the year in outline, dotted rules, a shutter-speed dial), **Life on Film** and **Life on Mirrorless**. The focused card faces you; the other two
   lean back in depth on either side. Click (or tap, or Enter) a side card to bring it to the centre; click the
   centred card to open it: the collections open their pages through the title morph, and Pax's glides to the
   letter and 'Say hello'. Deep dark ground under heavy grain; no glass.
 - **Life on Film is the roll's contact sheet:** strips of 3:2 frames on the film base, each with its real frame
-  number from the scan's file name printed along the edge.
-- **Life on Mirrorless is the stack of prints:** each print has a label strip carrying its real camera data
-  (aperture, shutter, ISO, focal length, date, camera).
+  number from the scan's file name printed along the edge, and sprocket holes along the top and bottom of every
+  frame (a whole number of holes per frame, so a row reads as one continuous strip, ending in the same holes as
+  the end of the roll).
+- **Life on Mirrorless is the stack of prints:** each print is shown on the camera's screen, with its real
+  camera data (aperture, shutter, ISO, focal length, date, camera) along the bottom.
 - **The letter is the note tucked in the envelope.**
 - **The footer is the back of the envelope,** where you say hello. Nothing is sold, so there is no order form.
 
@@ -27,12 +29,13 @@ or is read off the sensor (mirrorless), and can be shared as a link to that exac
 
 ## Type
 
-Two faces from Google Fonts, no others:
+Two faces from Google Fonts, plus one for a single word:
 
 | Role | Face | Settings |
 | --- | --- | --- |
 | Display | **Bebas Neue** 400 | capitals only, tracking -0.02em (-0.04em above 120px), leading 0.85 |
 | Text | **EB Garamond** 400/500, italic 400 | leading 1.5, tracking 0, tabular figures for camera data |
+| Poster name | **Inter Tight** 800 | Pax's card only: the name "Pax's" and the outline year, lowercase, tracking -0.065em, leading 0.76; loaded subset to those glyphs (`text=Pax's0123456789`), a few KB. Added 2026-10-24: the user asked for the name set like a Swiss-grunge poster, a heavy grotesque Bebas Neue can't give. |
 
 Five size steps, never a sixth:
 
@@ -62,15 +65,15 @@ Two-colour print job: green-black ground, bone paper, with the photographs suppl
 --paper-2:    #cfcdc2;  /* the stamp mat, film edge print */
 --accent:     #9fc7b8;  /* pale jade: the one action per screen, focus ring */
 --accent-ink: #161c1a;
---stamp:      #ffa15a;  /* amber date stamp: the hero title only (its hot core) */
---stamp-glow: #ff4410;  /* its red-orange halation */
+--neon:       rgb(227 226 218 / 0.9);  /* the hero cards' VHS frame: a bone tube of light */
 ```
 
-- Label strips on the prints cycle through four pairs: ink on surface, paper-ink on paper, ink on surface-2,
-  paper-ink on muted.
+- Each print sits on the camera's screen: a bezel in the film-base tone (the playback index's), the frame's
+  place in the trip along the top ("▶ 2 / 9", display face, paper-2), its camera data along the bottom (ink;
+  date and camera in paper-2). Film frames get sprocket holes; digital prints never do.
 - Surfaces are separated by a step in tone, never by a line or a shadow.
-- The amber stamp colours appear only in the hero title. Added 2026-10-23 for the date-stamp hero (the user's
-  overdrive pick): a film camera's date imprint is amber, and no existing token could carry it.
+- `--neon` is bone at 90%: it appears only in the hero cards' VHS frame. Added 2026-10-24 (the user asked for a
+  black-and-white neon VHS border on the slideshow); it replaced the amber date-stamp tokens, retired with the stamp.
 
 ## Space and shape
 
@@ -95,11 +98,14 @@ The site uses none of these:
 - 01/02/03 numbering (frame numbers are written "Frame 13")
 - thin rules
 - gradients (a neutral scrim under text on a photo is allowed)
-- shadows at rest (only what floats casts one: the open lightbox, and a hovered hero card)
+- shadows at rest (only what floats casts one: the open lightbox, and a hovered hero card; the hero cards' neon
+  frame is the one glow, see below)
 
-**Chosen exceptions, hero only:** the date stamp's halation is a glow (a blurred copy of the title behind it,
- not a text-shadow), and the hero photo carries a radial darkening scrim under its text. Both were picked by
-the user on 2026-10-23 and appear nowhere else. The fixer sheen (a band of reflected light crossing a print as it comes
+**Chosen exceptions, hero only:** the cards' photos carry a neutral darkening scrim under their text. On
+2026-10-24 the user asked for every slideshow photo in black and white with a neon VHS border: each card has a 1px
+bone frame inset 3.5cqi with a static glow (box-shadow) and red and blue copies 1.5px apart, and these are the only
+outlined box and glow at rest on the site. The inspector reports them (`shadow`, `outlined-box`) on `/`; they are
+kept on purpose and allowed nowhere else. The fixer sheen (a band of reflected light crossing a print as it comes
 to the front) is a gradient, also hero only.
 
 **The VHS screen, every page** (2026-10-23, the user's pick, after arcmarumo.com): the whole site plays back like a
@@ -143,13 +149,13 @@ stays crisp.
 --t-hover:  200ms;  /* hover, underline, colour */
 --t-fade:   240ms;  /* an image appearing once it has loaded */
 --t-close:  260ms;  /* lightbox closing, a swipe settling, zoom out */
---t-open:   420ms;  /* lightbox opening, the page-to-page title morph */
+--t-open:   420ms;  /* lightbox opening */
 --t-reveal: 600ms;  /* landing-page entrances (seen once per visit) */
 --stagger:   60ms;  /* between items entering together */
 --ease-spring: linear(0, 0.026, 0.0905, 0.1773, 0.2746, 0.3741, 0.4702, 0.5594, 0.6397, 0.7102, 0.7708, 0.822, 0.8644, 0.899, 0.9268, 0.9486, 0.9656, 0.9784, 0.988, 0.9948, 0.9996, 1.0028, 1.0048, 1.0058, 1.0063, 1.0062, 1.0059, 1.0054, 1.0048, 1.0042, 1.0036, 1.003, 1.0025, 1.002, 1.0016, 1.0012, 1);
                /* a spring (duration 0.6s, bounce 0.15) baked into CSS: 0.6% overshoot */
 --t-deck:    840ms;  /* the hero deck rearranging, including the spring settling */
---t-film:  640ms;  /* film's page transition: slow and soft */
+--t-film:  640ms;  /* film's page transition, and both collections' title morph: slow and soft */
 --t-shutter: 280ms; /* mirrorless page transition: crisp, like a shutter */
 --t-reveal-crisp: 360ms; /* mirrorless prints wiping in */
 ```
@@ -164,14 +170,16 @@ stays crisp.
 | Hover on a frame or print (fine pointer only) | Tens per visit | Says "this opens"; the photo leans toward the pointer | The image inside its crop goes to `scale(1.05)` and drifts toward the pointer by at most 2.5% of its size, so the crop never shows an edge. The frame itself does not move. Without JS: `scale(1.03)` only. | spring, duration 0.5s, bounce 0 | — |
 | Hover on a text link | Tens per visit | Feedback | underline colour fades in, and the channel changes: for a third of a second the link glitches (red and blue split, a skew, two sliced clips), like a VHS changing channel. On a touch screen the same glitch plays the moment a finger lands on a link, and on every device a visible headline or the wordmark glitches on its own every 6 to 12 seconds (glitch.ts; paused in a hidden tab or with a photo open full screen). Nothing under reduced motion. | `ease`; glitch `step-end` | `--t-hover`; glitch 360ms |
 | A photo finishing loading (every thumbnail, everywhere) | Every photo, once | Hides the jarring pop from blurred placeholder to photo | `opacity 0 → 1` after `img.decode()`; already-cached images show at once | `--ease-out` | `--t-fade` |
-| **Landing, first screen** | Once per visit | Arrival | The date stamp burns in: its halation blooms first, then the sharp amber letters expose over it; the line fades in after. Everything is settled by 1.0s. The hero photo is painted at once and never waits. | `--ease-out` | 900ms, the line at +300ms |
+| **Landing, first screen** | Once per visit | Arrival | The poster's name is painted at once; its rules, outline year, dial and small print fade in over it. Everything is settled by 1.1s. The hero photo is painted at once and never waits. | `--ease-out` | 650ms at +450ms |
+| **Hero cards: neon frame** | Ambient, while the hero is on screen | A tube of light on an old set | Each card's VHS frame stutters twice near the end of a 7s cycle (opacity 1 → 0.3 → 1 → 0.55 → 1, stepped), the three cards out of phase. Paused off screen; none under reduced motion. | steps(1) | 7s cycle |
 | **Hero deck: a card comes to the centre** (click, tap, Enter, arrow keys, swipe) | Occasional | Spatial: the chosen print slides to the front | Every card moves to its new place in the stack (`translateX` + `rotateY` on a baked spring, depth sorted by the browser). Depth (`translate` z) runs on its own faster curve, so the chosen print lifts clear before the cards swing past each other and their planes never cut through one another | `--ease-spring`; depth `--ease-out` | `--t-deck` (840ms incl. settle); depth `--t-open` |
 | **Hero deck: hover** (fine pointer) | Tens per visit | Says which card you are on | The hovered card comes forward and grows to `scale(1.03)`: the centred card faces you; a side card turns most of the way round (to 12°) but stays behind the centred one, and its outline only grows, so the hover can't flicker at an edge; its layered shadow fades in (a pseudo-element's opacity, never an animated box-shadow); the other cards dim a little | `--ease-spring`, `ease` for the dim | 520ms, 200ms |
 | **Hero deck: opening the centred card** | Per navigation | Continuity | Collections: the card title morphs into the page title (the per-collection page transitions). Pax's: smooth scroll to the letter | as page transitions | as page transitions |
 | **Hero grain** | While the hero is on screen | It is a print, alive | Heavy grain over the whole deck (a noise tile, overlay at 45%) jumps 24 times a second on the compositor; paused off screen, still under reduced motion | steps(1) | 417ms loop |
 | **The VHS screen** | On every page, always | Every page plays back like a tape: the grain of the prints and the screen they are watched on | Four fixed layers over the whole site, each blending with the page directly: film grain (the shared noise tile, overlay at 20%, jumping 24 times a second), scanlines with RGB phosphor stripes (flickering to 90% in two steps every 120ms), a faint bright band rolling down the screen, and a vignette. Under the lightbox (a top-layer dialog), so a full-screen photo shows clean. Reduced motion: grain and lines still, no roll, no flicker. | steps(1), steps(2), linear | 417ms, 120ms, 7s roll |
-| **The developing tray** (overdrive), hero | Once per session | The darkroom: the three prints come up in the developer | On the first visit of a session, the cards start as blank bone paper (hidden before first paint, so no photo flashes) and develop on three small WebGL canvases: shadows first, highlights last, with a slow liquid wobble and wet sheen calming as they finish. Side prints first, the centred one 220ms later; then the date stamp burns in. The canvases are all set up during the still paper beat, the clock starts after, and GSAP waits until it ends. No WebGL, reduced motion or a slow photo: the photos are simply there. A print brought to the centre later catches a fixer sheen (a band of reflected light, 800ms). | develop curve in the shader; sheen `--ease-in-out` | 1.3s; sheen 800ms |
-| Landing sections (the facts, the letter) | Once per visit | Reading order | Heading, then text, then pictures rise 16px with opacity, once each, when 15% visible. Content is visible without JS. | `--ease-out` | `--t-reveal`, `--stagger` |
+| **The developing tray** (overdrive), hero | Once per session | The darkroom: the three prints come up in the developer | On the first visit of a session, the cards start as blank bone paper (hidden before first paint, so no photo flashes) and develop on three small WebGL canvases: shadows first, highlights last, with a slow liquid wobble and wet sheen calming as they finish. Side prints first, the centred one 220ms later; then the poster's small print appears. The prints develop in black and white (the shader draws the same grayscale, contrast and brightness as the photos' CSS filter, so the hand-over is invisible). The canvases are all set up during the still paper beat, the clock starts after. No WebGL, reduced motion or a slow photo: the photos are simply there. A print brought to the centre later catches a fixer sheen (a band of reflected light, 800ms). | develop curve in the shader; sheen `--ease-in-out` | 1.3s; sheen 800ms |
+| **Channel-flipping previews** (overdrive), hero | While Life on Film or Life on Mirrorless is centred | Shows the collections, not just their covers: the card plays its photos like a VHS preview | Every 2.4s the centred collection card cuts to another real photo (the newest roll; a round of the trips), framed on its build-time focus point. The cut is a 320ms tracking glitch: the new picture tears in, sliced and shifted in steps, while a bright band rolls down the card and the title glitches; the card's line names the frame ("Roll 001 · Frame 13", "Paris, Feb 2026"). Side cards hold still; so does the centred one while hovered, for 4s after a touch, 1.6s after a turn, off screen, in a hidden tab, or while the prints develop. Pictures load only when cut to. Reduced motion: the covers stay. | steps(1); band linear | 2.4s hold, 320ms cut |
+| Landing sections (the facts, the letter) | Once per visit | Reading order | Heading, then text, then pictures rise 16px with opacity, once each, when 15% visible (an IntersectionObserver marks the items; CSS transitions move them). Content is visible without JS. | `--ease-out` | `--t-reveal`, `--stagger` |
 | Hover on a door (fine pointer) | Rare | Delight: the envelope's contents shift | Film strip slides `translateX(-12px)`; fanned prints spread 2° further apart | `--ease-out` | 300ms |
 | **Lightbox opens** from a click or tap | Occasional | Spatial: the photo you touched *becomes* the big photo | FLIP: the image grows from the thumbnail's exact rectangle to its full-screen rectangle. The ground fades in under it (200ms); the bar and strip rise 8px with opacity after 120ms. | `--ease-out` | `--t-open` |
 | **The darkroom** (overdrive), film, as the lightbox opens | Occasional | The medium itself: the frame appears as its negative and is printed in front of you | On a WebGL canvas that travels with the growing photo: the orange-masked **negative** holds until the photo is full size, clears to blank **paper** (bone), and the **print develops**, shadows first, highlights last, with grain settling. Then a 160ms crossfade hands over to the full-resolution photo. | linear time, shaped in the shader | 900ms |
@@ -181,13 +189,16 @@ stays crisp.
 | Lightbox frame change by **swipe** | Often on phones | Direct manipulation | The photo follows the finger 1:1. On release it commits if it moved past 30% of the width **or** its velocity is above 0.11px/ms, sliding the next photo in; otherwise it settles back. | `--ease-drawer` | 280ms |
 | Lightbox frame change by **Previous/Next button** | Often | Continuity | Crossfade only, no travel; the caption (title and details) fades in over the same 160ms, so words and photo change together | `ease` | 160ms |
 | A status line in the lightbox ("Link copied") | Occasional | Feedback | Rises 4px and fades in; fades out after 1.8s instead of vanishing. Reduced motion: fade only. | `--ease-out` in, `ease` out | 200ms in, 150ms out |
+| Next past the last photo, or Previous before the first (the lightbox wraps round) | Rare | Feedback, shown: the tape went round instead of silently jumping | The VCR on-screen display blinks in at the top left, "Rewind" (or "Fast forward") beside two drawn arrows, in display type with the colour fringe, and holds 1.3s; the first photo tears in with the channel glitch (sliced, shifted, stepped). The status line says it in words for screen readers. Reduced motion: the display only, no tear. | steps(1) | 1.3s display, 360ms tear |
+| **No signal** (404), its empty frame | On a broken link | Delight on a dead end: the tape has nothing recorded here | A 3:2 frame on the film base filled with TV snow (the shared noise tile, contrast raised by a static filter) jumping 4 times faster than the grain; the title glitches with the ambient channel glitch; the way back is three links. Reduced motion: the snow stands still. | steps(1) | 250ms loop |
 | Crossing into the next roll or trip in the lightbox | Rare | Marks the new set without stopping you | The set name in the bar wipes in (`clip-path: inset(0 100% 0 0) → inset(0)`) and holds in jade. The photo is never delayed. | `--ease-out` | 300ms |
 | Zoom in / out in the lightbox | Occasional | Morph on screen | `scale(1 ↔ 2)` from the tap point; panning follows the pointer smoothed by a 0.15 lerp per frame | `--ease-in-out` | in `--t-close`+40ms (300ms), out `--t-close` |
 | Swipe down to close (phone) | Occasional | Direct manipulation | The photo follows the finger down and the ground fades with distance. Release past 90px or above 0.11px/ms closes (reverse FLIP); otherwise it settles back. | `--ease-drawer` | `--t-close` |
-| Page to page, **into or out of Life on Film** | Per navigation | Continuity, with film's pace: slow and soft, like a print coming up in the tray | The door's heading morphs into the page's `h1`; the whole page crossfades while the new one settles from `scale(1.015)` | `--ease-in-out` (morph), `ease` (fade), `--ease-out` (settle) | `--t-film` |
-| Page to page, **into or out of Life on Mirrorless** | Per navigation | Continuity, with digital's pace: crisp and quick, like a shutter | The heading morphs; the new page wipes down over the old one (`clip-path: inset(0 0 100% 0) → inset(0)`) with no fade | `--ease-out` (morph), `--ease-in-out` (wipe) | `--t-shutter` |
+| Page to page, **into or out of Life on Film** | Per navigation | Continuity, with film's pace: slow and soft, like a print coming up in the tray | The door's heading morphs into the page's `h1` (both titles' boxes hug their letters and break their lines at the same place, so the morph scales one shape evenly; it runs at `--t-film`, `--ease-in-out` for both collections); the whole page crossfades while the new one settles from `scale(1.015)` | `--ease-in-out` (morph), `ease` (fade), `--ease-out` (settle) | `--t-film` |
+| Page to page, **into or out of Life on Mirrorless** | Per navigation | Continuity, with digital's pace: crisp and quick, like a shutter | The heading morphs at the same slow, even pace as Film's ("Life on / Mirrorless" breaks after "on" on the card and the page); the new page wipes down over the old one (`clip-path: inset(0 0 100% 0) → inset(0)`) with no fade | `--ease-in-out` | morph `--t-film`; wipe `--t-shutter` |
 | **Life on Film frames** scrolling into view | Once per frame per page view | Reading order; the roll develops as you reach it | Frames below the first screen rise 16px with opacity as they enter, 40ms apart within a batch. Frames already on screen never move. | `--ease-out` (rise), `ease` (fade) | `--t-reveal` |
 | **Life on Mirrorless prints** scrolling into view | Once per print per page view | Reading order, crisp | Prints below the first screen wipe in from the top (`clip-path`), 40ms apart within a batch. Prints already on screen never move. | `--ease-in-out` | `--t-reveal-crisp` |
+| **The end of a roll** (Life on Film) | Once per roll per page view | The roll runs out: the strip ends the way real film does | After the last frame the strip runs on into two fogged, light-struck frames (the last photo, overexposed and blurred by static filters, so the colour is the photo's own), on the strips' own column grid (so the fogged frames are the size of the frames above), and is cut into the leader's tongue; under it, "End of Roll 001 · 9 frames". As it scrolls in, the strip slides in 32px and the light leaks into the fog (an overexposed layer fading up). Already settled if on screen at arrival; reduced motion: settled. | `--ease-out` | `--t-reveal`; fog 1.4s |
 | **AF lock** (overdrive), Life on Mirrorless | Once per print per page view | The medium: the camera finds its subject before the data is written | When a print reaches the upper half of the screen, four AF corner brackets hunt over the sharpest patch of the frame (a contrast-detect focus point found at build time): scale 1.4 → 0.84 → 1.07 → 1, then turn jade, hold and fade. The camera data under the print is then rewritten field by field: each value blinks off and back on, 50ms apart, readable at full strength before and after. Prints arriving together lock 140ms apart. Reduced motion: no brackets and no blink. | `--ease-in-out` (hunt), steps (data), `ease` (fade) | 460ms hunt, 820ms hold and fade |
 | Smooth scrolling (Lenis) | Constantly | Weight on desktop wheels | `lerp: 0.1`. Index and anchor jumps use `scrollTo` over 0.8s on `--ease-in-out`. | — | — |
 
@@ -237,20 +248,18 @@ Swipe gestures still work, because they follow the finger; only their settle bec
 
 1. **Only `transform`, `opacity` and `clip-path` animate.** Never `width`, `height`, `top`, `left` or
    `filter`. The `brightness(0.7)` on the hero is static.
-2. **Hovers, presses and fades are CSS transitions.** Scroll-linked moves use GSAP ScrollTrigger with `scrub`.
+2. **Hovers, presses and fades are CSS transitions.** Scroll entrances are an IntersectionObserver that marks items for a CSS transition. No animation library ships (GSAP was removed on 2026-10-24: its only remaining job was that entrance).
 3. **Every lightbox move uses the Web Animations API,** which Chrome runs on the compositor. A busy main
    thread can delay the start of a move, but never make it stutter or jump ahead. GSAP Flip was tried first;
    its main-thread clock made the open jump a frame on a slow phone.
 4. **Libraries load only where used:**
-   - GSAP and ScrollTrigger only on `/`, fetched after the page has loaded and the main thread is idle, so
-     parsing them never competes with the arrival.
-   - Gallery pages ship no GSAP.
-   - Lenis runs everywhere on desktop pointers.
+   - Lenis runs everywhere on desktop pointers. The deck's links stop their clicks from reaching Lenis's anchor
+     scrolling, so a side Pax's card comes forward instead of jumping to the letter.
 5. **Set transforms directly on the element.** Never drive per-frame motion through inherited CSS variables.
 6. **`will-change: transform`** goes only on the element in flight. It is added when a move or drag starts
    and removed when it lands.
 7. **Lenis is off on touch devices** (native momentum is better), **while the lightbox is open, and under
-   reduced motion.** It is synced to ScrollTrigger's ticker.
+   reduced motion.**
 8. **No content is hidden waiting for JS.** Entrance start states are applied by the script that animates
    them, behind a `js` class on `<html>`.
 9. **The page passes the taste-skill inspector without `--allow still-page`.**

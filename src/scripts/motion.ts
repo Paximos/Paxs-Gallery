@@ -5,8 +5,8 @@ import 'lenis/dist/lenis.css';
 export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const finePointer = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-// A cubic-bezier as a function of time, for places that take an easing function (Lenis).
-export function bezier(x1: number, y1: number, x2: number, y2: number) {
+// A cubic-bezier as a function of time, for Lenis, which takes an easing function.
+function bezier(x1: number, y1: number, x2: number, y2: number) {
   const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
   const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
   const x = (t: number) => ((ax * t + bx) * t + cx) * t;
@@ -26,11 +26,9 @@ export function bezier(x1: number, y1: number, x2: number, y2: number) {
   };
 }
 
-// The same curves as the CSS tokens in global.css, as functions GSAP and Lenis take directly.
-export const easeOut = bezier(0.23, 1, 0.32, 1);
-export const easeInOut = bezier(0.77, 0, 0.175, 1);
-export const easeDrawer = bezier(0.32, 0.72, 0, 1);
-// The same curves as strings, for the Web Animations API.
+// --ease-in-out as a function, for Lenis's anchor scrolling.
+const easeInOut = bezier(0.77, 0, 0.175, 1);
+// The DESIGN.md curves as strings, for the Web Animations API.
 export const EASE = {
   out: 'cubic-bezier(0.23, 1, 0.32, 1)',
   inOut: 'cubic-bezier(0.77, 0, 0.175, 1)',

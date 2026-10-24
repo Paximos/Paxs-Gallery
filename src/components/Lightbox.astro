@@ -20,6 +20,10 @@
     </div>
   </div>
   <div class="lb-strip" aria-label="Frames in this set"></div>
+  <div class="lb-osd" aria-hidden="true">
+    <svg class="lb-osd-mark" viewBox="0 0 40 20" width="40" height="20"><path d="M20 0 0 10l20 10zM40 0 20 10l20 10z" fill="currentColor" /></svg>
+    <span class="lb-osd-word"></span>
+  </div>
 </dialog>
 
 <script>
@@ -239,6 +243,30 @@
       img.style.transformOrigin = '';
     }
 
+    // ---------- the end of the tape ----------
+    // Next past the last photo goes back to the first (Previous the other way). The VCR's on-screen display
+    // blinks REWIND (or FAST FORWARD), the first photo tears in like a tape catching up, and the status line
+    // says it in words for screen readers.
+    const osd = dialog.querySelector<HTMLElement>('.lb-osd')!;
+    function rewind(back: boolean) {
+      say(back ? 'Back to the end of the tape.' : 'End of the tape. Rewound to the start.', 2600);
+      osd.querySelector('.lb-osd-word')!.textContent = back ? 'Fast forward' : 'Rewind';
+      osd.classList.toggle('is-ff', back);
+      osd.getAnimations().forEach((x) => x.cancel());
+      osd.animate(
+        [{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 0.25, offset: 0.2 }, { opacity: 1, offset: 0.3 }, { opacity: 1, offset: 0.82 }, { opacity: 0 }].map((k) => ({ ...k, easing: 'steps(1, end)' })),
+        { duration: 1300 },
+      );
+      if (reduced()) return;
+      img.animate([
+        { clipPath: 'inset(0 0 72% 0)', transform: 'translateX(-4%)', easing: 'steps(1, end)' },
+        { clipPath: 'inset(38% 0 22% 0)', transform: 'translateX(3%)', offset: 0.25, easing: 'steps(1, end)' },
+        { clipPath: 'inset(8% 0 48% 0)', transform: 'translateX(-2%)', offset: 0.5, easing: 'steps(1, end)' },
+        { clipPath: 'inset(0 0 12% 0)', transform: 'translateX(1%)', offset: 0.75, easing: 'steps(1, end)' },
+        { clipPath: 'inset(0 0 0 0)', transform: 'none' },
+      ], { duration: 360, composite: 'add' });
+    }
+
     // ---------- changing frames ----------
     // instant: swap in place · fade: crossfade (buttons, strip) · swipe: the caller moves the photos
     type Mode = 'instant' | 'fade' | 'swipe';
@@ -276,6 +304,8 @@
       // the caption changes with the photo: it fades in over the same 160ms as the crossfade (keys stay instant)
       if (dialog!.open && mode === 'fade') for (const el of [titleEl, metaEl]) run(el, 'opacity', '1', T.fade, 'ease', '0');
       status.textContent = '';
+      // Past the last frame Next goes back to the first (and Previous the other way): say so, like a tape rewinding.
+      if (dialog!.open && links.length > 1 && (i >= links.length || i < 0)) rewind(i < 0);
       buildStrip(a.dataset.group ?? '');
       grain.style.setProperty('--r', img.style.getPropertyValue('--r'));
       if (mode !== 'swipe') setGrain(); // a swipe restores it once the photo lands
@@ -572,6 +602,12 @@
   @media (hover: hover) and (pointer: fine) { .lb-btn:hover { text-decoration-color: currentColor; } }
   .lb-share { background: var(--accent); color: var(--accent-ink); }
   .lb-status { min-height: 1.45em; margin-top: 0.25rem; color: var(--accent); }
+  /* the VCR on-screen display at the end of the tape: top left of the screen, like a deck's OSD */
+  .lb-osd { position: fixed; top: max(var(--margin), env(safe-area-inset-top)); left: var(--margin); z-index: 3; display: flex; align-items: center; gap: 0.6rem; opacity: 0; pointer-events: none;
+    font-family: var(--font-display); font-size: var(--step-head); line-height: 1; color: var(--ink); text-shadow: var(--chroma); } /* taste-skill-ignore: VHS colour fringe (DESIGN.md) */
+  .lb-osd-word { padding-top: 0.1em; }
+  .lb-osd-mark { width: 0.9em; height: auto; }
+  .lb-osd.is-ff .lb-osd-mark { transform: scaleX(-1); }
   .lb-title:focus { outline: none; }
   .lb-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   .lb-strip { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 2px; }

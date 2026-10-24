@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Astro (static output) with GSAP + ScrollTrigger for motion and Lenis for smooth scrolling, chosen by the user
+Astro (static output) with Lenis for smooth scrolling. GSAP + ScrollTrigger were chosen by the user at the start and removed on 2026-10-24 in an optimize pass, once their only job was a scroll entrance (now an IntersectionObserver and CSS); add them back if a scroll-linked scene needs them
 on 2026-10-23. Replaces the current plain HTML/CSS/JS prototype in `site/`. Deploy target not yet decided
 (any static host works).
 

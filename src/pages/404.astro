@@ -1,0 +1,44 @@
+---
+// A link that leads nowhere: the tape has no signal here. One empty frame of live static, then the way back
+// to the photographs. Netlify serves this page for every unknown address.
+import Base from '../layouts/Base.astro';
+---
+<Base title="No signal · Pax's" description="Nothing was recorded at this address. Pax's photographs are on film and on the mirrorless.">
+  <main class="nosig wrap">
+    <div class="nosig-text">
+      <h1 class="head">No signal</h1>
+      <p class="nosig-note">Nothing was recorded at this address. The tape picks up again here:</p>
+      <ul class="nosig-links">
+        <li><a class="link" href="/film/">Life on Film</a></li>
+        <li><a class="link" href="/mirrorless/">Life on Mirrorless</a></li>
+        <li><a class="link" href="/">The envelope</a></li>
+      </ul>
+    </div>
+    <figure class="nosig-frame" aria-hidden="true">
+      <span class="nosig-static"></span>
+      <figcaption class="nosig-edge nums">Frame ?</figcaption>
+    </figure>
+  </main>
+</Base>
+
+<style>
+  .nosig { min-height: calc(100svh - var(--nav-h)); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 2.5rem; align-items: center; padding-block: clamp(2rem, 6vw, 5rem); }
+  /* the empty frame: a 3:2 window on the film base, filled with static. The text comes first in reading
+     order; on a wide screen the frame takes the left of the same row. */
+  .nosig-frame { grid-column: 1 / 8; grid-row: 1; display: flex; flex-direction: column; gap: 4px; padding: 14px 8px 8px; background: var(--strip); }
+  .nosig-static { position: relative; display: block; aspect-ratio: 3 / 2; overflow: hidden; background: var(--surface-2); }
+  .nosig-static::before { content: ''; position: absolute; inset: -50%; background: var(--noise) repeat; background-size: 120px 120px;
+    filter: grayscale(1) brightness(0.74) contrast(4); } /* static, never animated: TV snow, not a flat grey */
+  .nosig-edge { font-family: var(--font-display); font-size: var(--step-body); line-height: 1.1; padding-top: 0.1em; color: var(--paper-2); }
+  .nosig-text { grid-column: 9 / 13; grid-row: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+  .nosig-note { max-width: 30ch; }
+  .nosig-links { display: flex; flex-direction: column; gap: 0.35rem; font-family: var(--font-display); font-size: var(--step-lead); line-height: 1.15; }
+  .nosig-links a { padding-top: 0.1em; }
+  @media (prefers-reduced-motion: no-preference) {
+    .nosig-static::before { animation: pax-grain 250ms steps(1) infinite; }
+  }
+  @media (max-width: 64em) {
+    .nosig-frame, .nosig-text { grid-column: 1 / 13; grid-row: auto; }
+    .nosig { align-content: center; }
+  }
+</style>

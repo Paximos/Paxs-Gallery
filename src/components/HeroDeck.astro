@@ -12,17 +12,29 @@ interface Card {
   title: string;
   meta: string;
   position?: string; // object-position for the portrait crop
+  feed?: { photo: Photo; label: string }[]; // what the card flips through while centred (channel.ts)
 }
 
 interface Props {
   cards: Card[];
-  stamp: string;
-  line: string;
+  year: string; // two digits, set in outline on Pax's card
+  notes: string[]; // the small print in the poster's corner
 }
 
-const { cards, stamp, line } = Astro.props;
+const { cards, year, notes } = Astro.props;
+// the shutter-speed dial along the foot of the poster, with the speed the light usually asks for marked
+const speeds = [1, 2, 4, 8, 15, 30, 60, 125, 250, 500, 1000];
+const channel = (id: Card['id']) => (id === 'film' ? 'CH 01' : 'CH 02');
 const images = await Promise.all(
   cards.map((c) => (c.photo ? getImage({ src: c.photo.image, width: 900, widths: [600, 900, 1400], format: 'avif', quality: c.photo.collection === 'film' ? 62 : 52 }) : undefined)),
+);
+// Each feed as small responsive pictures, handed to the script as data (it loads them only when it cuts to them).
+const feeds = await Promise.all(
+  cards.map(async (c) => c.feed ? JSON.stringify(await Promise.all(c.feed.map(async ({ photo, label }) => {
+    const im = await getImage({ src: photo.image, width: 600, widths: [400, 600, 900], format: 'avif', quality: photo.collection === 'film' ? 62 : 52 });
+    // cropped into a portrait card, each frame keeps its subject (the build's focus point) in view
+    return { src: im.src, srcset: im.srcSet.attribute, label, pos: `${Math.round(photo.focus.x * 100)}% ${Math.round(photo.focus.y * 100)}%` };
+  }))) : undefined),
 );
 // The cards come in visual order (left, centre, right) and the deck opens centred on Pax's.
 // A card's place: 0 centre, -1 left, 1 right; the script uses the same formula, so nothing jumps.
@@ -50,6 +62,7 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
           data-kind={c.id}
           aria-current={start(i) === 0 ? 'true' : undefined}
           aria-describedby="deck-hint"
+          data-feed={feeds[i]}
         >
           {c.photo && images[i] && (
             <img
@@ -66,23 +79,32 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
             />
           )}
           <span class="deck-sheen" aria-hidden="true"></span>
-          <span class="deck-shade" aria-hidden="true"></span>
-          <span class="deck-text">
-            {c.id === 'pax' ? (
-              <>
-                <h1 id="deck-title" class="date-stamp" aria-label="Pax's: photographs on film and mirrorless">
-                  <span class="date-stamp-glow" aria-hidden="true">{stamp}</span>
-                  <span class="date-stamp-text" aria-hidden="true">{stamp}</span>
-                </h1>
-                <span class="deck-line">{line}</span>
-              </>
-            ) : (
-              <>
-                <span class="deck-title" style={`view-transition-name: title-${c.id}`}>{c.title}</span>
-                <span class="deck-meta nums">{c.meta}</span>
-              </>
-            )}
+          {c.feed && <span class="deck-track" aria-hidden="true"></span>}
+          <span class="deck-frame" aria-hidden="true">
+            {c.feed && <span class="deck-osd"><span class="deck-play">Play</span><span>{channel(c.id)}</span></span>}
           </span>
+          <span class="deck-shade" aria-hidden="true"></span>
+          {c.id === 'pax' && (
+            <div class="poster">
+              <span class="poster-rule-v" aria-hidden="true"></span>
+              <span class="poster-rule-h" aria-hidden="true"></span>
+              <span class="poster-tone" aria-hidden="true"></span>
+              <span class="poster-year" aria-hidden="true">{year}</span>
+              <h1 id="deck-title" class="poster-name" aria-label="Pax's: photographs on film and mirrorless">
+                <span aria-hidden="true">Pax</span>
+                <span class="poster-name-2" aria-hidden="true"><i></i>s</span>
+                <span class="poster-spaced" aria-hidden="true">photographs</span>
+              </h1>
+              <span class="poster-scale nums" aria-hidden="true">{speeds.map((s) => (s === 125 ? <b>{s}</b> : <span>{s}</span>))}</span>
+              <span class="poster-notes nums">{notes.map((n) => <span>{n}</span>)}</span>
+            </div>
+          )}
+          {c.id !== 'pax' && (
+            <span class="deck-text">
+              <span class="deck-title" style={`view-transition-name: title-${c.id}`}>{c.title}</span>
+              <span class="deck-meta nums">{c.meta}</span>
+            </span>
+          )}
         </a>
       </li>
     ))}
@@ -93,6 +115,7 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
 <script>
   import { EASE, getLenis, reduced } from '../scripts/motion';
   import { runTray } from '../scripts/tray';
+  import { channels } from '../scripts/channel';
 
   const deck = document.querySelector<HTMLElement>('[data-deck]');
   if (deck) {
@@ -112,6 +135,7 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
         else links[k].removeAttribute('aria-current');
       });
       if (moveFocus) links[active].focus({ preventScroll: true });
+      deck.dispatchEvent(new Event('deckturn'));
       // the print just brought forward catches a fixer sheen as it settles
       if (!reduced()) links[active].querySelector('.deck-sheen')?.animate(
         [{ transform: 'translateX(-70%)', opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: 'translateX(70%)', opacity: 0 }],
@@ -138,6 +162,9 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
       a.addEventListener('click', (e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
+        // The deck answers its own clicks: Lenis's anchor scrolling (on the page root) must not also follow
+        // Pax's '#letter' link, or a side Pax card would jump to the letter instead of coming forward.
+        e.stopPropagation();
         // First click centres a side card; a click on the centred card opens it.
         if (place(i) !== 0) focusCard(i, e.detail === 0);
         else open(i);
@@ -168,6 +195,7 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
     if (hero) {
       new IntersectionObserver(([en]) => hero.classList.toggle('is-off', !en.isIntersecting)).observe(hero);
       runTray(deck);
+      channels(deck);
     }
   }
 </script>
@@ -209,7 +237,7 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
   .deck-card::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--t-hover) ease;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.22), 0 6px 12px rgb(0 0 0 / 0.2), 0 18px 36px rgb(0 0 0 / 0.26), 0 40px 80px rgb(0 0 0 / 0.32); } /* taste-skill-ignore: shadow of a floating, hovered card */
   /* the photo sits lowest in the card (the link isolates its own stack), so the text scrim lands on it */
-  .deck-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+  .deck-photo, .deck-link :global(.deck-feed) { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
   /* how far a card recedes: a dark wash whose opacity changes, never a filter */
   .deck-shade { position: absolute; inset: 0; background: var(--bg); opacity: 0.42; transition: opacity var(--t-hover) ease; pointer-events: none; }
   .deck-card[data-pos='0'] .deck-shade { opacity: 0; }
@@ -226,17 +254,53 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
   /* a neutral scrim under the text so it reads over any photo (the sanctioned exception) */
   .deck-text::before { content: ''; position: absolute; inset: -60% 0 0 0; z-index: -1; background: linear-gradient(to top, rgb(16 20 19 / 0.86), rgb(16 20 19 / 0.5) 45%, transparent); } /* taste-skill-ignore: neutral scrim under text on a photo */
   /* type on a card is capped by the card's own width, so a small print never overflows */
-  .deck-title { font-family: var(--font-display); text-transform: uppercase; letter-spacing: -0.02em; font-size: min(var(--step-head), 19cqi); line-height: 0.88; }
+  /* fit-content: the box hugs the letters, so the morph into the page title scales them evenly */
+  .deck-title { width: fit-content; white-space: pre-line; font-family: var(--font-display); text-transform: uppercase; letter-spacing: -0.02em; font-size: min(var(--step-head), 19cqi); line-height: 0.88; }
   .deck-meta { font-size: var(--step-small); color: var(--ink); }
-  .deck-line { font-style: italic; font-size: var(--step-body); line-height: 1.25; }
-
-  /* the date stamp on Pax's card: amber core, red-orange halation */
-  .date-stamp { position: relative; align-self: flex-end; font-size: min(5.5rem, 21cqi); line-height: 0.82; color: var(--stamp); }
-  .date-stamp-text { position: relative; display: block; } /* solid amber letters: the burn is in the glow */
-  .date-stamp-glow { position: absolute; inset: 0; color: var(--stamp-glow); filter: blur(0.06em); mix-blend-mode: screen; }
-  .deck-pax .deck-line { align-self: flex-end; }
   /* a print this small (a phone on its side) keeps only its title */
-  @container (max-width: 14rem) { .deck-line, .deck-meta { display: none; } }
+  @container (max-width: 14rem) { .deck-meta, .poster-notes, .poster-scale { display: none; } }
+
+  /* every card is played back off tape: a black-and-white picture, hard contrast */
+  /* (the develop canvas draws the same print in its shader: a filter on it would cost a long frame per draw) */
+  .deck-photo, .deck-link :global(.deck-feed) { filter: grayscale(1) contrast(1.28) brightness(0.9); }
+  .deck-pax .deck-photo { filter: grayscale(1) contrast(1.28) brightness(0.6); }
+
+  /* the VHS frame: a bone neon tube inset in each card, its light fringed red and blue like the tape's colour
+     bleeding, with the deck's on-screen display in the corners. Its glow is static; only its opacity flickers. */
+  .deck-frame { position: absolute; inset: 3.5cqi; pointer-events: none; border: 1px solid var(--neon);
+    box-shadow: 0 0 3px var(--neon), 0 0 14px rgb(227 226 218 / 0.3), inset 0 0 3px var(--neon), inset 0 0 12px rgb(227 226 218 / 0.18); } /* taste-skill-ignore: neon glow of the VHS frame (DESIGN.md) */
+  .deck-frame::before, .deck-frame::after { content: ''; position: absolute; inset: -1px; border: 1px solid; mix-blend-mode: screen; }
+  .deck-frame::before { border-color: rgb(255 40 70 / 0.5); translate: -1.5px 0; }
+  .deck-frame::after { border-color: rgb(40 150 255 / 0.5); translate: 1.5px 0; }
+  .deck-osd { position: absolute; inset: 3cqi 4cqi auto; display: flex; justify-content: space-between; font-family: var(--font-display);
+    font-size: min(var(--step-lead), 7.5cqi); line-height: 1; color: var(--ink); text-shadow: var(--chroma); } /* taste-skill-ignore: VHS colour fringe (DESIGN.md) */
+  .deck-osd::before { content: ''; position: absolute; z-index: -1; inset: -6cqi -8cqi -10cqi; background: linear-gradient(rgb(16 20 19 / 0.55), transparent); } /* taste-skill-ignore: neutral scrim under the on-screen display */
+  .deck-play::before { content: ''; display: inline-block; width: 0.5em; height: 0.62em; margin-right: 0.3em; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+
+  /* Pax's card is a poster (after a Swiss-grunge print): the name set huge and heavy, its apostrophe a square
+     block; dotted rules crossing; a halftone corner; the year in outline, big enough to run off the card;
+     the name of the work spaced out in italics; a shutter-speed dial and the small print along the foot. */
+  .poster { position: absolute; inset: 0; color: var(--ink); }
+  .poster > * { position: absolute; }
+  /* the same neutral scrim as the other cards' text, under the small print at the foot */
+  .poster::before { content: ''; position: absolute; inset: 45% 0 0 0; background: linear-gradient(to top, rgb(16 20 19 / 0.78), rgb(16 20 19 / 0.4) 45%, transparent); } /* taste-skill-ignore: neutral scrim under text on a photo */
+  .poster-rule-v { top: 0; bottom: 0; left: 62%; border-left: 2px dotted rgb(227 226 218 / 0.7); }
+  .poster-rule-h { top: 61cqi; left: 0; width: 62%; border-top: 2px dotted rgb(227 226 218 / 0.7); }
+  .poster-tone { top: 0; right: 0; width: 24cqi; height: 19cqi; opacity: 0.75;
+    background: radial-gradient(circle, var(--ink) 0 34%, transparent 40%) 0 0 / 4px 4px; } /* taste-skill-ignore: halftone dots, not a colour gradient */
+  .poster-year { left: -5cqi; bottom: -10cqi; font-family: var(--font-poster); font-weight: 800; font-size: 78cqi; line-height: 0.8; letter-spacing: -0.06em;
+    color: transparent; -webkit-text-stroke: 1.5px rgb(227 226 218 / 0.8); }
+  .poster-name { top: 13cqi; left: 16cqi; right: 6cqi; font-family: var(--font-poster); font-weight: 800; text-transform: none; font-size: 36cqi; line-height: 0.76; letter-spacing: -0.065em;
+    text-shadow: var(--chroma); } /* taste-skill-ignore: VHS colour fringe (DESIGN.md) */
+  .poster-name > span { display: block; }
+  .poster-name-2 { padding-left: 0.9em; }
+  .poster-name-2 i { display: inline-block; width: 0.18em; height: 0.18em; margin-right: 0.19em; vertical-align: 0.42em; background: currentColor; }
+  /* the name of the work, spaced out in italics under the name, part of the title */
+  .poster-spaced { margin-top: 1.5cqi; text-align: right; font-family: var(--font-text); font-weight: 400; font-style: italic; font-size: var(--step-small); line-height: 1.4; letter-spacing: 0.62em; }
+  .poster-scale { left: 7cqi; right: 7cqi; bottom: 21cqi; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 3px;
+    border-bottom: 2px solid var(--ink); font-size: var(--step-small); line-height: 1; }
+  .poster-scale b { font-weight: 500; padding: 0.15em 0.2em 0.05em; background: var(--ink); color: var(--paper-ink); }
+  .poster-notes { right: 7cqi; bottom: 7cqi; display: flex; flex-direction: column; align-items: flex-end; font-size: var(--step-small); line-height: 1.3; }
 
   .deck-hint { position: relative; z-index: 3; justify-self: center; color: var(--muted); text-align: center; }
 
@@ -244,10 +308,12 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
   :global(html.tray) .deck-link { background: var(--paper); }
   :global(html.tray) .deck-photo { opacity: 0; }
   .deck-link :global(.deck-tray) { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; }
-  /* the stamp burns in once the print has developed */
-  :global(html.tray) .date-stamp-glow { animation-delay: 1250ms; }
-  :global(html.tray) .date-stamp-text { animation-delay: 1500ms; }
+  /* the poster's rules, dial and small print are printed over the photo once it has developed */
+  :global(html.tray) .poster > :not(.poster-name) { animation-delay: 1450ms; }
   /* the fixer sheen: a band of reflected light that crosses a print as it comes to the front (animated from the script) */
+  /* the tracking band that rolls down a card as it changes channel (channel.ts) */
+  .deck-track { position: absolute; left: 0; right: 0; top: 0; height: 14%; z-index: -1; opacity: 0; pointer-events: none; mix-blend-mode: screen;
+    background: linear-gradient(transparent, rgb(227 226 218 / 0.22) 42%, rgb(227 226 218 / 0.45) 50%, rgb(227 226 218 / 0.22) 58%, transparent); } /* taste-skill-ignore: VHS tracking band */
   .deck-sheen { position: absolute; inset: -10% -40%; z-index: -1; pointer-events: none; opacity: 0; mix-blend-mode: screen;
     background: linear-gradient(105deg, transparent 38%, rgb(227 226 218 / 0.22) 50%, transparent 62%); } /* taste-skill-ignore: light reflected on a wet print, hero only */
   .hint-touch { display: none; }
@@ -278,14 +344,18 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
   }
 
   /* motion */
-  @keyframes stamp-bloom { from { opacity: 0; } }
-  @keyframes stamp-expose { from { opacity: 0; } }
+  @keyframes poster-in { from { opacity: 0; } }
+  /* a neon tube on an old set: steady, then two quick stutters near the end of each cycle */
+  @keyframes neon { 0%, 90%, 91.4%, 93%, 100% { opacity: 1; } 90.6% { opacity: 0.3; } 92.2% { opacity: 0.55; } }
   @keyframes deck-arrive { from { opacity: 0; transform: translateY(24px); } }
   @media (prefers-reduced-motion: no-preference) {
     .deck-grain::before { animation: pax-grain 417ms steps(1) infinite; }
-    .deck-hero.is-off .deck-grain::before { animation-play-state: paused; }
-    .date-stamp-glow { animation: stamp-bloom 900ms var(--ease-out) 300ms both; }
-    .date-stamp-text { animation: stamp-expose 650ms var(--ease-out) 550ms both; }
+    .deck-frame { animation: neon 7s steps(1, end) infinite; }
+    .deck-card:nth-child(2) .deck-frame { animation-delay: -2.3s; }
+    .deck-card:nth-child(3) .deck-frame { animation-delay: -4.9s; }
+    .deck-hero.is-off .deck-grain::before, .deck-hero.is-off .deck-frame { animation-play-state: paused; }
+    /* the name is there from the first frame (on the tray it comes up with the print); the rest prints in */
+    .poster > :not(.poster-name) { animation: poster-in 650ms var(--ease-out) 450ms both; }
     /* each card face arrives on its own: an opacity animation on the deck itself would flatten the 3D stack */
     .deck-link { animation: deck-arrive var(--t-deck) var(--ease-spring) backwards; }
     .deck-card:nth-child(2) .deck-link { animation-delay: 60ms; }
@@ -299,7 +369,8 @@ const start = (i: number) => ((i - first + 4) % 3) - 1;
   @media (max-width: 64em) {
     .deck { --w: min(46vw, 24rem, calc(var(--avail) * 0.7)); }
     /* side cards lean past the screen edge here, so only the centred card shows its title */
-    .deck-card:not([data-pos='0']) .deck-text { opacity: 0; }
+    .deck-card:not([data-pos='0']) .deck-text, .deck-card:not([data-pos='0']) .poster { opacity: 0; visibility: hidden; }
+    .poster { transition: opacity var(--t-hover) ease, visibility var(--t-hover) allow-discrete; }
   }
   @media (max-width: 40em) {
     .deck { --w: min(72vw, calc(var(--avail) * 0.7)); }

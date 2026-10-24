@@ -17,20 +17,28 @@ const firstYear = Math.min(...years);
 const lastYear = Math.max(...years);
 const span = lastYear - firstYear;
 
-// The title is the date stamp a film camera burns into the corner of a print.
-const stamp = `PAX'S '${String(lastYear).slice(2)}`;
+// Pax's card is set as a poster: the name, the year in outline, and a few true notes in the corner.
+const year = String(lastYear).slice(2);
+const notes = [`${latestRoll.label} · 35mm`, camera];
+// What each collection card flips through while it is centred: its cover first, then real frames from the
+// collection (the newest roll; a round of the trips, newest first), each named on the card as it shows.
+const filmFeed = [filmCard, ...latestRoll.photos.filter((p) => p !== filmCard)].filter(Boolean).slice(0, 8)
+  .map((p) => ({ photo: p!, label: p === filmCard ? '' : `${latestRoll.label} · Frame ${p!.frame}` }));
+const rounds = Math.max(...mirrorless.map((g) => g.photos.length));
+const tripRound = Array.from({ length: rounds }, (_, i) => mirrorless.map((g) => [g, g.photos[i]] as const)).flat().filter(([, p]) => p && p !== mirrorlessCard);
+const mirrorlessFeed = [{ photo: mirrorlessCard!, label: '' }, ...tripRound.slice(0, 7).map(([g, p]) => ({ photo: p!, label: g.label }))];
 // In visual order, left to right; the deck opens centred on Pax's.
 const cards = [
-  { id: 'film' as const, href: '/film/', photo: filmCard, title: 'Life on Film', meta: [latestRoll.label, count(filmFrames, 'frame', 'frames')].join(' · ') },
+  { id: 'film' as const, href: '/film/', photo: filmCard, feed: filmFeed, title: 'Life on Film', meta: [latestRoll.label, count(filmFrames, 'frame', 'frames')].join(' · ') },
   { id: 'pax' as const, href: '#letter', photo: hero, title: "Pax's", meta: '', position: '62% 45%' },
-  { id: 'mirrorless' as const, href: '/mirrorless/', photo: mirrorlessCard, title: 'Life on Mirrorless', meta: [count(mirrorless.length, 'trip', 'trips'), count(digitalFrames, 'frame', 'frames')].join(' · ') },
+  { id: 'mirrorless' as const, href: '/mirrorless/', photo: mirrorlessCard, feed: mirrorlessFeed, title: 'Life on\nMirrorless', meta: [count(mirrorless.length, 'trip', 'trips'), count(digitalFrames, 'frame', 'frames')].join(' · ') },
 ];
 const named = mirrorless.map((g) => g.places).filter(Boolean) as string[];
 const unnamed = mirrorless.length - named.length;
 const tripPlaces = named.length ? named.join(', ') + (unnamed ? ` and ${say(unnamed)} more` : '') : 'trips by month';
 ---
 <Base title="Pax's: Life on Film & Life on Mirrorless" description={`Photographs by Pax: ${count(film.length, 'roll', 'rolls')} of 35mm film and ${say(span)} years on a ${camera}.`}>
-  <HeroDeck cards={cards} stamp={stamp} line="Two cameras. One life." />
+  <HeroDeck cards={cards} year={year} notes={notes} />
 
   <main>
     <section class="intro wrap" aria-labelledby="intro-title">
@@ -60,46 +68,22 @@ const tripPlaces = named.length ? named.join(', ') + (unnamed ? ` and ${say(unna
 </Base>
 
 <script>
-  // Landing-page motion (DESIGN.md, Motion): the once-per-visit section entrances.
+  // Landing-page motion (DESIGN.md, Motion): the once-per-visit section entrances. Headings, then text, then
+  // pictures rise 16px and fade in, once each section's top is 15% into view (a CSS transition per item).
   // The hero deck is its own component (HeroDeck.astro).
-  // GSAP is fetched and set up only once the page has loaded and the main thread is idle, so parsing it
-  // never competes with the deck's arrival.
-  import { easeOut, getLenis, reduced } from '../scripts/motion';
-
-  async function init() {
-    const [{ gsap }, { ScrollTrigger }] = await Promise.all([import('gsap'), import('gsap/ScrollTrigger')]);
-    gsap.registerPlugin(ScrollTrigger);
-    getLenis()?.on('scroll', ScrollTrigger.update);
-
-    // Headings, then text, then pictures, once each section is 15% into view.
-    document.querySelectorAll<HTMLElement>('main > section').forEach((section) => {
-      const items = [...section.querySelectorAll<HTMLElement>('[data-reveal]')]
-        .sort((a, b) => Number(a.dataset.reveal) - Number(b.dataset.reveal));
-      // A section the visitor can already see stays as it is rather than blinking out to animate in.
-      if (!items.length || section.getBoundingClientRect().top < innerHeight * 0.85) return;
-      gsap.set(items, { opacity: 0, y: 16 });
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top 85%',
-        once: true,
-        onEnter: () => gsap.to(items, { opacity: 1, y: 0, duration: 0.6, ease: easeOut, stagger: 0.06, clearProps: 'transform' }),
-      });
-    });
-  }
-
-  // While the hero prints are developing (html.tray), parsing GSAP would land in the middle of the develop:
-  // wait for it to finish first.
-  const afterTray = (go: () => void) => {
-    const root = document.documentElement;
-    if (!root.classList.contains('tray')) return go();
-    const mo = new MutationObserver(() => { if (!root.classList.contains('tray')) { mo.disconnect(); go(); } });
-    mo.observe(root, { attributes: true, attributeFilter: ['class'] });
-  };
+  import { reduced } from '../scripts/motion';
 
   if (!reduced()) {
-    const whenIdle = () => afterTray(() => ('requestIdleCallback' in window ? requestIdleCallback(() => init(), { timeout: 1200 }) : setTimeout(init, 300)));
-    if (document.readyState === 'complete') whenIdle();
-    else addEventListener('load', whenIdle, { once: true });
+    const seen = new IntersectionObserver((entries) => entries.filter((e) => e.isIntersecting).forEach((e) => {
+      seen.unobserve(e.target);
+      e.target.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => { el.dataset.in = ''; });
+    }), { rootMargin: '0px 0px -15% 0px' });
+    document.querySelectorAll<HTMLElement>('main > section').forEach((section) => {
+      // A section the visitor can already see stays as it is rather than blinking out to animate in.
+      if (section.getBoundingClientRect().top < innerHeight * 0.85) return;
+      section.dataset.reveal = 'wait';
+      seen.observe(section);
+    });
   }
 </script>
 
@@ -131,5 +115,12 @@ const tripPlaces = named.length ? named.join(', ') + (unnamed ? ` and ${say(unna
   }
 
   /* motion (DESIGN.md, Motion): the hero deck animates itself (HeroDeck.astro); the sections below
-     enter once from the script above */
+     enter once, marked by the script above, staggered by their reading order (data-reveal 1, 2, 3) */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal='wait'] [data-reveal] { opacity: 0; transform: translateY(16px); }
+    [data-reveal='wait'] [data-reveal][data-in] { opacity: 1; transform: none;
+      transition: opacity var(--t-reveal) var(--ease-out), transform var(--t-reveal) var(--ease-out); }
+    [data-reveal='wait'] [data-reveal='2'][data-in] { transition-delay: var(--stagger); }
+    [data-reveal='wait'] [data-reveal='3'][data-in] { transition-delay: calc(var(--stagger) * 2); }
+  }
 </style>

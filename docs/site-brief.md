@@ -23,6 +23,7 @@ first-screen sketch is `.impeccable/mocks/decision/contact.html`.
 | `/film` | Life on Film: one contact sheet per roll, newest roll first |
 | `/mirrorless` | Life on Mirrorless: one proof sheet per trip, newest trip first |
 | `/film/roll-001/13`, `/mirrorless/2026-paris/4` | The lightbox, open on one frame (shareable deep links) |
+| any unknown address | **No signal** (404): an empty frame of static and the links back to the photos |
 
 The navigation is the same on every page:
 - the wordmark "Pax's" (links home)
@@ -38,11 +39,12 @@ Hierarchy, top to bottom:
 
 1. **The hero deck** (changed 2026-10-23): three prints in a 3D stack, Life on Film on the left, **Pax's**
    in the centre, Life on Mirrorless on the right.
-   - **Pax's** is the sunset frame with PAX'S '26 burned in as an amber date stamp (the page's `h1`) and the
-     line "Two cameras. One life."
+   - **Pax's** is the sunset frame in black and white, set as a poster (after a Swiss-grunge print): the name
+     "Pax's" huge and heavy as the page's `h1`, the year in outline, dotted rules, a shutter-speed dial and the roll and camera in small print.
    - **Two-stage:** click, tap or Enter a side card to bring it to the centre; click the centred card to open
      it. The collections open their pages through the title morph; Pax's glides to the letter.
    - Arrow keys turn the deck; on a phone, swipe. Without JavaScript every card is a plain link.
+   - The centred collection card plays its photos like a VHS preview, cutting to another real frame every few seconds.
 2. **The split** (removed 2026-10-23): the two doors were replaced by the deck's collection cards.
 3. **A work in progress…:** the heading and the facts row. All the numbers are counted
    from the photos at build time.
@@ -148,10 +150,9 @@ site.
   - Optional `photos/captions.yml` holds the titles, places, film stock and trip names, keyed by file name.
   - Astro outputs responsive AVIF/WebP sizes and a tiny blurred placeholder per frame.
 - **Motion:**
-  - **GSAP:**
-    - **ScrollTrigger:** the hero drift and envelope scrub, and the landing-page entrances
-    - **Flip:** the lightbox growing from the thumbnail and closing back into it
-  - **Lenis** for smooth scrolling, synced to ScrollTrigger. It is turned off while the lightbox is open,
+  - **No animation library** (GSAP removed 2026-10-24): landing entrances are an IntersectionObserver plus CSS
+    transitions; the lightbox runs on the Web Animations API.
+  - **Lenis** for smooth scrolling. It is turned off while the lightbox is open,
     and fully off under `prefers-reduced-motion`.
   - **Astro View Transitions** between `/`, `/film` and `/mirrorless`: the door you click morphs into that
     page's title.

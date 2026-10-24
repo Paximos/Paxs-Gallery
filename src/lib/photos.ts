@@ -155,7 +155,7 @@ async function loadFilm(): Promise<Group[]> {
       file: e.file, collection: 'film', image: e.image, group: `roll-${roll}`, index: 0, frame,
       title: n.title, place: n.place,
       alt: n.alt ?? `Frame ${frame ?? ''} of roll ${roll}${n.title ? `: ${n.title}` : ''}`,
-      exif: {}, placeholder: await placeholder(e.file), focus: { x: 0.5, y: 0.5 }, href: '',
+      exif: {}, placeholder: await placeholder(e.file), focus: await focusPoint(e.file), href: '',
     };
     if (!rolls.has(roll)) rolls.set(roll, []);
     rolls.get(roll)!.push(photo);

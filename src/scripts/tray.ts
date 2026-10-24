@@ -19,6 +19,7 @@ uniform float u_t;      // 0 to 1 through the develop
 uniform vec4 u_crop;    // object-fit: cover, as offset.xy and scale.zw of the image's uv
 uniform vec2 u_res;
 uniform float u_seed;
+uniform float u_bright; // the card's black-and-white print: the same grayscale, contrast and brightness as its CSS filter
 varying vec2 v_uv;
 
 const vec3 PAPER = vec3(0.890, 0.886, 0.855); // bone, --paper
@@ -31,6 +32,8 @@ void main() {
   vec2 wob = vec2(sin(v_uv.y * 23.0 + u_t * 11.0 + u_seed), sin(v_uv.x * 17.0 - u_t * 8.0 + u_seed * 0.7)) * 0.0045 * calm;
   vec3 c = texture2D(u_img, u_crop.xy + clamp(v_uv + wob, 0.0, 1.0) * u_crop.zw).rgb;
   float lum = dot(c, vec3(0.299, 0.587, 0.114));
+  // A black-and-white print, so the canvas hands over to the filtered photo without a change
+  c = vec3(clamp((dot(c, vec3(0.2126, 0.7152, 0.0722)) - 0.5) * 1.28 + 0.5, 0.0, 1.0) * u_bright);
   // Paper holds for a beat, then the print develops out of it, shadows first, highlights last.
   float dev = smoothstep(0.08, 1.0, u_t);
   float local = clamp(dev * 1.7 - lum * 0.7, 0.0, 1.0);
@@ -88,6 +91,7 @@ function develop(img: HTMLImageElement, bitmap: ImageBitmap): (start: number) =>
   gl.uniform4f(u('u_crop'), px * (1 - sx), py * (1 - sy), sx, sy);
   gl.uniform2f(u('u_res'), canvas.width, canvas.height);
   gl.uniform1f(u('u_seed'), Math.random() * 10);
+  gl.uniform1f(u('u_bright'), link.closest('.deck-pax') ? 0.6 : 0.9);
   gl.uniform1i(u('u_img'), 0);
   const uT = u('u_t');
   const draw = (t: number) => { gl.uniform1f(uT, t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };

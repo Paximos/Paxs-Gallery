@@ -1,6 +1,7 @@
 ---
 // A collection page: a sticky index of rolls or trips on the left, one sheet per roll or trip on the right.
 // Film sheets are strips of six 3:2 frames; mirrorless sheets are proof rows of prints in their true shapes.
+import { getImage } from 'astro:assets';
 import Photo from './Photo.astro';
 import Lightbox from './Lightbox.astro';
 import { exposure, formatDate, formatRange, type Group } from '../lib/photos';
@@ -14,10 +15,16 @@ const { collection, groups } = Astro.props;
 const film = collection === 'film';
 const total = groups.reduce((n, g) => n + g.photos.length, 0);
 const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
+// How each roll ends: the strip runs on into fogged, light-struck frames (the last photo, overexposed) and
+// the leader.
+const ends = await Promise.all(groups.map(async (g) => (film
+  ? { fog: (await getImage({ src: g.photos.at(-1)!.image, width: 400, format: 'avif', quality: 50 })).src }
+  : { fog: '' })));
 ---
 <main class="col wrap">
   <aside class="col-side">
-    <h1 class="head" style={`view-transition-name: title-${collection}`}>{film ? 'Life on Film' : 'Life on Mirrorless'}</h1>
+    {/* broken where the hero card breaks it, so the title morph scales one shape instead of re-wrapping */}
+    <h1 class="head col-title" style={`view-transition-name: title-${collection}`}>{film ? 'Life on Film' : <>Life on<br />Mirrorless</>}</h1>
     <p class="col-intro">
       {film
         ? `Every roll laid out as the lab's contact sheet, newest first: ${groups.length} ${groups.length === 1 ? 'roll' : 'rolls'}, ${frames(total)}. Tap a frame to lift it out.`
@@ -43,7 +50,8 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
         </header>
 
         {film ? (
-          <ol class="sheet-body strips" aria-label={`${g.label}, ${frames(g.photos.length)}`}>
+          <div class="sheet-body">
+          <ol class="strips" aria-label={`${g.label}, ${frames(g.photos.length)}`}>
             {g.photos.map((p) => (
               <li class="frame">
                 <Photo photo={p} group={g} class={p.image.height > p.image.width ? 'ph-portrait' : ''} sizes="(min-width: 64em) 15vw, (min-width: 40em) 22vw, 30vw" />
@@ -51,10 +59,21 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
               </li>
             ))}
           </ol>
+          <div class="roll-end" style={`--fog:url("${ends[gi].fog}")`}>
+            <div class="roll-strip" aria-hidden="true">
+              <span class="roll-fog"></span>
+              <span class="roll-fog roll-fog-2"></span>
+              <span class="roll-leader"></span>
+            </div>
+            <p class="roll-edge nums">End of {g.label} · {frames(g.photos.length)}</p>
+          </div>
+          </div>
         ) : (
-          <ul class="sheet-body proof">
+          <div class="sheet-body">
+          <ul class="proof">
             {g.photos.map((p, i) => (
-              <li class={`print pair-${i % 4}`} style={`--r:${(p.image.width / p.image.height).toFixed(4)}`}>
+              <li class="print" style={`--r:${(p.image.width / p.image.height).toFixed(4)}`}>
+                <p class="print-osd nums" aria-hidden="true"><span class="print-play"></span>{i + 1} / {g.photos.length}</p>
                 <div class="print-ph" style={`--fx:${p.focus.x.toFixed(3)};--fy:${p.focus.y.toFixed(3)}`}>
                   <Photo photo={p} group={g} sizes="(min-width: 64em) 30vw, 50vw" />
                   <span class="af" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
@@ -69,6 +88,7 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
               </li>
             ))}
           </ul>
+          </div>
         )}
       </section>
     ))}
@@ -165,6 +185,19 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
     prints.forEach((p) => aim.observe(p));
   }
 
+  // ---------- the end of a roll ----------
+  // The fogged tail unspools and the light leaks in. Once per roll per page view; already settled if visible
+  // on arrival, under reduced motion, or without JS.
+  if (!reduced()) {
+    const ends = [...document.querySelectorAll<HTMLElement>('.roll-end')].filter((e) => e.getBoundingClientRect().top > innerHeight * 0.92);
+    ends.forEach((e) => { e.dataset.end = 'wait'; });
+    const seen = new IntersectionObserver((entries) => entries.filter((x) => x.isIntersecting).forEach((x) => {
+      seen.unobserve(x.target);
+      (x.target as HTMLElement).dataset.end = 'in';
+    }), { threshold: 0.5 });
+    ends.forEach((e) => seen.observe(e));
+  }
+
   // ---------- cursor-follow: the photo leans toward the pointer inside its crop ----------
   // A spring of duration 0.5s and no bounce (stiffness 158, damping 25, mass 1), stepped per frame.
   if (finePointer() && !reduced()) {
@@ -237,6 +270,8 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
 
   .col { display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; gap: var(--gutter) clamp(2rem, 4vw, 4rem); padding-top: clamp(1rem, 3vw, 2.5rem); }
   .col-side { display: flex; flex-direction: column; gap: 1.5rem; }
+  /* the title's box hugs its letters, as the hero card's does: the page-to-page morph then scales one shape evenly */
+  .col-title { width: fit-content; }
   .col-intro { max-width: 32ch; font-size: max(1.125rem, var(--step-body)); }
   /* only the index stays put while the sheets scroll by */
   .col-index { position: sticky; top: 1.5rem; max-height: calc(100svh - 3rem); overflow-y: auto; scrollbar-width: none; }
@@ -250,11 +285,19 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
   .sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
   .sheet-title { font-size: var(--step-lead); line-height: 1; letter-spacing: 0; }
   .sheet-count { font-size: var(--step-small); }
-  .sheet-body { background: var(--surface); padding: clamp(0.75rem, 1.6vw, 1.5rem); }
+  .sheet-body { --holes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='7'%3E%3Crect x='6' width='10' height='7' rx='2' fill='%231f2725'/%3E%3C/svg%3E");
+    --hole-h: 7px; --hole-at: 4px; background: var(--surface); padding: clamp(0.75rem, 1.6vw, 1.5rem); }
 
   /* film: each row of the grid is a strip of negatives on the near-black film base */
-  .strips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 0; }
-  .frame { display: flex; flex-direction: column; gap: 4px; padding: 14px 5px 8px; background: var(--strip); }
+  .sheet-body { --cols: 5; }
+  .strips { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 12px 0; }
+  .frame { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px 5px 15px; background: var(--strip); }
+  /* sprocket holes, cut through to the sheet (filled shapes in the sheet's own tone). `round` fits a whole
+     number of holes to each frame, so a row of frames reads as one continuous strip */
+  .frame::before, .frame::after, .roll-strip::before, .roll-strip::after { content: ''; position: absolute; left: 0; right: 0;
+    height: var(--hole-h); background: var(--holes) round no-repeat; background-size: calc(var(--hole-h) * 22 / 7) var(--hole-h); pointer-events: none; }
+  .frame::before, .roll-strip::before { top: var(--hole-at); }
+  .frame::after, .roll-strip::after { bottom: var(--hole-at); }
   .frame :global(.ph) { aspect-ratio: 3 / 2; }
   .frame :global(.ph-portrait img) { object-fit: contain; }
   /* the frame number printed along the film base, like the lab's edge print */
@@ -267,7 +310,14 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
   .proof { align-items: flex-start; }
   .print { flex: var(--r) 1 calc(var(--r) * var(--row)); display: flex; flex-direction: column; min-width: min(7.5rem, 100%); container-type: inline-size; }
   .print :global(.ph) { aspect-ratio: var(--r); }
-  .tag { padding: 10px 12px; display: flex; flex-direction: column; gap: 0.15rem; font-size: var(--step-small); line-height: 1.35; }
+  /* each print is shown on the camera's screen: a dark bezel, the frame's place in the
+     trip along the top, its camera data along the bottom */
+  .print { background: var(--strip); padding: 0 6px; }
+  .print-osd { display: flex; align-items: center; gap: 0.4em; padding: 7px 2px 5px; font-family: var(--font-display);
+    font-size: var(--step-small); line-height: 1; color: var(--paper-2); }
+  .print-play { width: 0.5em; height: 0.6em; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+  .tag { padding: 7px 2px 9px; display: flex; flex-direction: column; gap: 0.15rem; font-size: var(--step-small); line-height: 1.35; color: var(--ink); }
+  .tag-when { color: var(--paper-2); }
   .tag-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 0.75rem; }
   /* AF brackets: four corner marks over the frame's sharpest patch, bone while hunting, jade once locked */
   .print-ph { position: relative; }
@@ -281,10 +331,28 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
   .af i:nth-child(4) { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
   .print[data-af='lock'] .af i { border-color: var(--accent); }
 
-  .pair-0 .tag { background: var(--surface-2); color: var(--ink); }
-  .pair-1 .tag { background: var(--paper); color: var(--paper-ink); }
-  .pair-2 .tag { background: var(--strip); color: var(--ink); }
-  .pair-3 .tag { background: var(--muted); color: var(--paper-ink); }
+  /* the end of a roll: the strip runs on into fogged, light-struck frames and is cut into the leader's tongue */
+  .roll-end { margin-top: 12px; }
+  /* on the strips' own column grid, so the fogged frames are the size of the frames above them */
+  .roll-strip { position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); padding: 14px 0; background: var(--strip);
+    clip-path: polygon(0 0, 72% 0, 79% 50%, 100% 50%, 100% 100%, 0 100%); }
+  /* the last photo, overexposed: the light that got in as the roll ran out (static filters, never animated) */
+  .roll-fog { position: relative; aspect-ratio: 3 / 2; margin-inline: 5px; overflow: hidden; background: var(--surface-2); }
+  .roll-fog::before, .roll-fog::after { content: ''; position: absolute; inset: -15%; background: var(--fog) center / cover; }
+  .roll-fog::before { filter: blur(5px) brightness(1.3) saturate(1.3); }
+  .roll-fog::after { filter: blur(14px) brightness(2) saturate(1.9); opacity: 0.5; }
+  .roll-fog-2::before { filter: blur(10px) brightness(1.7) saturate(1.6); }
+  .roll-fog-2::after { opacity: 1; }
+  .roll-edge { margin-top: 6px; padding-top: 0.1em; font-family: var(--font-display); font-size: var(--step-body); line-height: 1.1; color: var(--paper-2); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .roll-strip { transition: transform var(--t-reveal) var(--ease-out), opacity var(--t-reveal) ease; }
+    .roll-fog::after { transition: opacity 1400ms var(--ease-out) 250ms; }
+    .roll-fog-2::after { transition-delay: 450ms; }
+    .roll-end[data-end='wait'] .roll-strip { transform: translateX(-32px); opacity: 0; }
+    .roll-end[data-end='wait'] .roll-fog::after { opacity: 0; }
+  }
+
   /* the label strip answers to its own print's width: a narrow print shows the four exposure values as a
      2 × 2 block and leaves the date and camera to the lightbox */
   @container (max-width: 12rem) {
@@ -298,14 +366,18 @@ const frames = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;
     .col-side > h1, .col-intro { grid-column: 1; }
     .col-index { top: 0; z-index: 2; max-height: none; margin-inline: calc(var(--margin) * -1); padding: 0.75rem var(--margin); background: var(--bg); overflow-x: auto; overflow-y: hidden; }
     .col-index ol { flex-direction: row; gap: 1.25rem; white-space: nowrap; }
-    .strips { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sheet-body { --cols: 4; }
   }
   @media (max-width: 40em) {
-    .sheet-body { padding: 0.5rem; }
-    .strips { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 0; }
-    .frame { padding: 10px 3px 6px; }
+    .sheet-body { --cols: 3; --hole-h: 5px; --hole-at: 3px; padding: 0.5rem; }
+    .strips { gap: 8px 0; }
+    .frame { padding: 10px 3px 11px; }
+    .roll-strip { padding: 10px 0; }
+    .roll-fog { margin-inline: 3px; }
     .proof { --row: 7.5rem; gap: 8px; }
-    .tag { padding: 8px; }
+    .print { padding: 0 4px; }
+    .print-osd { padding: 5px 1px 4px; }
+    .tag { padding: 5px 1px 7px; }
     .tag-when { display: none; }
   }
 </style>
